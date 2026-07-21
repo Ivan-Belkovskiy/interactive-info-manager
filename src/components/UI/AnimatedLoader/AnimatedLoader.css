@@ -1,0 +1,23 @@
+@keyframes rotation {
+    0% {
+        rotate: 0deg;
+    }
+
+    100% {
+        rotate: 720deg;
+    }
+}
+
+.animated-loader {
+    position: relative;
+    display: flex;
+    width: 20px;
+    height: 20px;
+    border-top: 3px solid var(--primary-color);
+    border-right: 3px solid var(--primary-color);
+    border-bottom: 3px solid transparent;
+    border-left: 3px solid transparent;
+    border-radius: 999px;
+    margin-right: 15px;
+    animation: rotation 0.8s ease 0.1s infinite;
+}

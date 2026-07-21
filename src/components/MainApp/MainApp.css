@@ -1,0 +1,47 @@
+.main-app {
+    width: 80%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease 0s;
+}
+
+.main-app__title {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    font-size: 32px;
+}
+
+
+.main-app__buttons {
+    width: 100%;
+    gap: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.main-app__button {
+    width: 100%;
+    background-color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    padding: 7px;
+    cursor: pointer;
+    color: var(--text-color);
+    margin-top: 20px;
+    border-radius: 5px;
+    transition: all 0.3s ease 0s;
+}
+
+.main-app__button:hover {
+    background-color: var(--text-color);
+    color: var(--primary-color);
+}

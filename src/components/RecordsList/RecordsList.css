@@ -1,0 +1,217 @@
+.records-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* margin-top: 20px; */
+
+}
+
+.records-list__title {
+    color: var(--primary-color);
+    text-align: center;
+    margin: 15px 0;
+    font-size: 20px;
+}
+
+.records-list__data {
+    border: 3px solid var(--primary-color);
+    border-radius: 5px;
+    height: 450px;
+    overflow-y: auto;
+}
+
+.records-list__info {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--primary-color);
+    font-size: 20px;
+}
+
+.records-list-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--text-color);
+    color: var(--primary-color);
+    transition: all 0.3s ease 0s;
+    padding: 0;
+    /* padding: 10px; */
+}
+
+.records-list-item {
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.records-list-item__left {
+    width: 30%;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    gap: 15px;
+    padding: 10px;
+    height: 100%;
+    transition: all 0.3s ease 0s;
+}
+
+.records-list-item__right {
+    width: 70%;
+    display: flex;
+    align-items: center;
+    justify-content: right;
+    gap: 15px;
+    padding: 0 10px;
+    height: 100%;
+}
+
+.records-list-item__left:hover {
+    cursor: pointer;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--text-color);
+}
+
+.records-list-item__infobox {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* flex-direction: column;
+    align-items: start;
+    justify-content: center; */
+}
+
+.records-list-item__infobox:not(:last-child) {
+    padding-right: 15px;
+    border-right: 1px solid var(--primary-color);
+    transition: all 0.3s ease 0s;
+}
+
+.records-list-item__left:hover .records-list-item__infobox {
+    border-color: var(--text-color);
+}
+
+.records-list-item__infobox .records-list-item__label {
+    font-size: 14px;
+    opacity: 0.7;
+}
+
+.records-list-item__infobox .records-list-item__value {
+    margin-left: 8px;
+    font-weight: bold;
+}
+
+.records-list-item__button {
+    padding: 4px 8px;
+    border-radius: 5px;
+    background-color: var(--background--red);
+    color: var(--text-color);
+    outline: 4px solid transparent;
+    transition: all 0.3s ease 0s;
+}
+
+.records-list-item__left:hover .records-list-item__button {
+    background-color: var(--text-color);
+    color: var(--color--red);
+}
+
+.records-list-item__button:hover {
+    cursor: pointer;
+    outline-color: var(--color--red);
+}
+
+.records-list__filters {
+    width: 100%;
+    display: flex;
+    padding: 10px;
+    border: 2px solid var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.records-list-filter__label {
+    color: var(--primary-color);
+}
+
+.records-list-filter__select {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    padding: 4px 8px;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.records-list-filter__select:focus {
+    outline: 2px solid var(--secondary-color);
+}
+
+
+
+
+
+
+.records-list__breadcrumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    border: 3px solid var(--primary-color);
+    background-color: var(--text-color);
+    /* color: var(--primary-color); */
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.breadcrumb-item {
+    cursor: pointer;
+    color: var(--primary-color);
+    opacity: 0.7;
+    /* color: var(--primary-color, #0066cc); */
+    transition: opacity 0.2s;
+}
+
+.breadcrumb-item:hover {
+    text-decoration: underline;
+    opacity: 0.8;
+}
+
+.breadcrumb-item.active {
+    color: var(--primary-color);
+    opacity: 1;
+    /* color: var(--text-color, #333); */
+    cursor: default;
+    pointer-events: none;
+    font-weight: bold;
+}
+
+.breadcrumb-separator {
+    color: var(--primary-color);
+    margin: 0 4px;
+}
+
+.records-list-item.type-folder {
+    background-color: var(--folder-bg, rgba(255, 193, 7, 0.05));
+    border-left: 8px solid #ffc107;
+    cursor: pointer;
+}
+
+.records-list-item.type-folder:hover {
+    background-color: var(--folder-bg-hover, rgba(255, 193, 7, 0.1));
+}
+
+.records-list-item.folder-up {
+    background-color: var(--background-secondary, #eee);
+    font-style: italic;
+    cursor: pointer;
+}
+
+.records-list-item__hint {
+    font-size: 0.8rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
