@@ -92,6 +92,12 @@ export default function MainApp({ categories, records }: MainAppProps) {
                     >
                         Создать категорию
                     </button>
+                    {/* <button
+                        className="main-app__button main-app__button--secondary"
+                        onClick={() => setCurrentAction('category-creation')}
+                    >
+                        Загрузить с устройства
+                    </button> */}
                 </div>
             </>
         );

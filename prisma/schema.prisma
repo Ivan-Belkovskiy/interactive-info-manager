@@ -7,9 +7,10 @@ datasource db {
 }
 
 model users {
-  id         Int          @id @default(autoincrement())
-  login      String       @unique @db.VarChar(100)
-  password   String       @db.VarChar(200)
+  id            Int          @id @default(autoincrement())
+  login         String       @unique @db.VarChar(100)
+  password      String       @db.VarChar(200)
+  keyPassword   String?      @db.VarChar(450)
   records    records[]
   categories categories[]
 }

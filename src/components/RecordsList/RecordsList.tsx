@@ -192,7 +192,7 @@ export default function RecordsList({
                 <SimpleModal
                     type="confirm"
                     title={`Удалить категорию "${isDeleteCategoryModalOpen.data.name}"?`}
-                    message="Содержимое категории будут перенесены на уровень выше"
+                    message="Содержимое категории будет перенесено на уровень выше"
                     confirmBtnText="Удалить"
                     cancelBtnText="Отмена"
                     disableButtons={isLoading}
