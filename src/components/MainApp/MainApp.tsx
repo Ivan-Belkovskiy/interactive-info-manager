@@ -1,32 +1,45 @@
 'use client';
 
-import { Category, _Record } from "@/types/data";
+import { Category, User, _Record } from "@/types/data";
 import RecordsList from "../RecordsList/RecordsList";
 import "./MainApp.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RecordManagementForm from "../RecordManagementForm/RecordManagementForm";
 import SimpleModal from "../UI/SimpleModal/SimpleModal";
 import { ClientCrypto } from "@/modules/ClientCrypto";
 import { deleteRecord, createCategory, deleteCategory } from "@/app/actions";
+import UserDataEditor from "../UserDataEditor/UserDataEditor";
+import AppNavigation from "../AppNavigation/AppNavigation";
 
-export interface MainAppProps {
+export type MainAppProps = ({
+    action: "user_settings";
+    userData: User;
+} | {
+    action?: "main_app";
     categories: Category[];
     records: _Record[];
-}
+}) & {
+    setCurrentUrl: (data: string) => void;
+};
 
-export type MainAppAction = "default" | "record-creation" | "record-editor" | "category-creation";
+export type MainAppAction = "default" | "record-creation" | "record-editor" | "category-creation" | "user-settings";
 
 const ActionTranslations: Record<MainAppAction, string> = {
     default: "Interactive Info Manager",
     "record-creation": "Новая запись",
     "record-editor": "Редактирование записи",
-    "category-creation": "Создание категории"
+    "category-creation": "Создание категории",
+    "user-settings": "Настройки аккаунта"
 }
 
-export default function MainApp({ categories, records }: MainAppProps) {
+export default function MainApp(props: MainAppProps) {
     const [keyPassword, setKeyPassword] = useState<string | null>(null);
-    const [currentAction, setCurrentAction] = useState<MainAppAction>('default');
+    const [currentAction, setCurrentAction] = useState<MainAppAction>(((props.action === 'user_settings') ? 'user-settings' : 'default'));
     const [editingRecordData, setEditingRecordData] = useState<Partial<_Record> | null>(null);
+
+    useEffect(() => {
+        setCurrentAction(((props.action === 'user_settings') ? 'user-settings' : 'default'));
+    }, [props.action])
     
     const [isModalOpened, setModalOpened] = useState(false);
     const [dataToOpen, setDataToOpen] = useState<_Record | null>(null);
@@ -69,11 +82,14 @@ export default function MainApp({ categories, records }: MainAppProps) {
     }
 
     const renderElements = (action: MainAppAction) => {
+        if (props.action === 'user_settings') return (
+            <UserDataEditor keyPassword={keyPassword} editingData={props.userData} setKeyPassword={setKeyPassword} />
+        );
         if (action === 'default') return (
             <>
                 <RecordsList
-                    categories={categories}
-                    records={records}
+                    categories={props.categories}
+                    records={props.records}
                     onSelect={handleRecordSelect}
                     onDelete={handleRecordDelete}
                     onDeleteCategory={handleCategoryDelete}
@@ -105,7 +121,7 @@ export default function MainApp({ categories, records }: MainAppProps) {
         if (action === 'record-creation') return (
             <RecordManagementForm
                 keyPassword={keyPassword || undefined}
-                categories={categories}
+                categories={props.categories}
                 onClose={() => setCurrentAction('default')}
                 defaultCategoryId={activeCategoryId}
                 openPasswordModal={() => {
@@ -120,7 +136,7 @@ export default function MainApp({ categories, records }: MainAppProps) {
                 keyPassword={keyPassword || undefined}
                 defaultCategoryId={activeCategoryId}
                 editingData={editingRecordData || undefined}
-                categories={categories}
+                categories={props.categories}
                 onClose={() => {
                     setEditingRecordData(null);
                     setCurrentAction('default');
@@ -137,7 +153,7 @@ export default function MainApp({ categories, records }: MainAppProps) {
                 type="prompt"
                 title={
                     activeCategoryId 
-                        ? `Создать подкатегорию в "${categories.find(c => c.id === activeCategoryId)?.name}":`
+                        ? `Создать подкатегорию в "${props.categories.find(c => c.id === activeCategoryId)?.name}":`
                         : "Создать категорию в корневом каталоге:"
                 }
                 // placeholder="Название категории..."
@@ -150,19 +166,26 @@ export default function MainApp({ categories, records }: MainAppProps) {
         );
     }
 
+
+    // if (props.action === 'user_settings')
+
     return (
         <div className="main-app">
+            {/* <AppNavigation /> */}
             {currentAction !== 'category-creation' && (
-                <h1 className="main-app__title">{ActionTranslations[currentAction]}</h1>
+                (currentAction !== 'default') && <h1 className="main-app__title">{ActionTranslations[currentAction]}</h1>
             )}
             {renderElements(currentAction)}
             {isModalOpened && <SimpleModal
-                type="prompt"
-                title="Введите ключ-пароль:"
-                onConfirm={(value) => {
-                    setKeyPassword(value);
+                // type="prompt"
+                type="confirm"
+                title="Данная запись зашифрована! Пожалуйста, введите ключ-пароль в настройках аккаунта!"
+                // title="Введите ключ-пароль:"
+                onConfirm={() => {
+                    props.setCurrentUrl('/settings');
+                    // setKeyPassword(value);
                     setModalOpened(false);
-                    if (dataToOpen) handleRecordSelect(dataToOpen, value);
+                    // if (dataToOpen) handleRecordSelect(dataToOpen, value);
                 }}
                 onCancel={() => setModalOpened(false)}
             />}

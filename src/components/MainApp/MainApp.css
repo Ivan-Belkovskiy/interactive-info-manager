@@ -1,10 +1,12 @@
 .main-app {
     width: 80%;
-    height: auto;
-    display: flex;
+    height: 100%;
+    /* display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
+    align-items: center; */
+    /* overflow: none auto; */
+    margin-top: 75px;
     transition: all 0.3s ease 0s;
 }
 

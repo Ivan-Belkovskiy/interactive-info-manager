@@ -5,25 +5,10 @@ import { prisma } from "@/lib/prisma";
 
 import "./page.css";
 import MainApp from "@/components/MainApp/MainApp";
-import { AppContextProvider } from "@/context/AppContext";
-import AppNavigation from "@/components/AppNavigation/AppNavigation";
-import MainPage from "@/components/MainPage/MainPage";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-export default async function Home() {
-  const [
-    categories,
-    records
-  ] = await Promise.all([
-    await prisma.categories.findMany({}),
-    await prisma.records.findMany({
-      orderBy: {
-        title: 'asc',
-      }
-    })
-  ]);
-
+export default async function SettingsPage() {
   const userLogin = (await cookies()).get('user_session');
   // return (
   //   <h1>{userLogin?.name}</h1>
@@ -43,8 +28,8 @@ export default async function Home() {
   );
   // const records = await prisma.records.findMany({});
   return (
-    <AppContextProvider>
-      <MainPage {...{ categories, records, userData }} />
-    </AppContextProvider>
+    <div className="settings-page">
+      <MainApp action="user_settings" userData={userData} />
+    </div>
   );
 }

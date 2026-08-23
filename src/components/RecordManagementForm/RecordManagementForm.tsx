@@ -34,7 +34,7 @@ export default function RecordManagementForm({
     const [categoryId, setCategoryId] = useState<number | null>(
         editingData ? (editingData.categoryId || null) : defaultCategoryId
     );
-    const [isEncrypted, setEncrypted] = useState(true);
+    const [isEncrypted, setEncrypted] = useState(false);
     const [content, setContent] = useState('');
     const [error, setError] = useState<string | null>(null);
 
@@ -148,7 +148,7 @@ export default function RecordManagementForm({
             <div className="record-management-form__block">
                 <span className="record-management-form__label">Шифровать данные?</span>
                 <SimpleCheckbox
-                    // disabled={editingData !== undefined}
+                    disabled={!keyPassword}
                     checked={isEncrypted ? true : false}
                     onSelect={(v) => {
                         if (editingData) {

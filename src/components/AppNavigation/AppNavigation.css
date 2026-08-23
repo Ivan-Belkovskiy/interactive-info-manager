@@ -1,0 +1,57 @@
+.app-navigation {
+    position: fixed;
+    width: 100%;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    display: flex;
+    border-bottom: 2px solid var(--primary-color);
+    z-index: 50;
+}
+
+.app-navigation__left {
+    width: 20%;
+    height: 100%;
+    display: flex;
+    justify-content: left;
+}
+
+.app-navigation__center {
+    width: 60%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.app-navigation__right {
+    width: 20%;
+    height: 100%;
+    display: flex;
+    justify-content: right;
+}
+
+.app-navigation-element {
+    padding: 15px 14px;
+}
+
+.app-navigation-element.app-logo {
+    font-family: sans-serif;
+    font-weight: 900;
+}
+
+.app-navigation-element.app-navigation__button {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    transition: all 0.3s ease 0s;
+}
+
+.app-navigation-element.app-navigation__button:hover,
+.app-navigation-element.app-navigation__button.current-url {
+    cursor: pointer;
+    background-color: var(--text-color);
+    color: var(--primary-color);
+}
+
+.app-navigation-element.app-navigation__button.current-url {
+    cursor: default;
+}

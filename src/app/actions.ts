@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { User } from "@/types/data";
 
 
 const SESSION_EXPIRATION = 7 * 24 * 60 * 60 * 1000;
@@ -45,6 +46,24 @@ export async function logoutUser() {
     const cookieStore = await cookies();
     cookieStore.delete("user_session");
     redirect("/login");
+}
+
+
+export async function updateUserData(id: number, newData: Partial<User>) {
+    try {
+        const updated = await prisma.users.update({
+            where: { id },
+            data: {
+                login: newData.login,
+                keyPassword: newData.keyPassword
+            }
+        });
+
+        return { success: true, updated };
+    } catch (error) {
+        console.error("Ошибка обновления данных пользователя:", error);
+        return { success: false, error: "Ошибка сервера" };
+    }
 }
 
 
@@ -236,9 +255,9 @@ export async function deleteCategory(id: number) {
         return { success: true, data: deletedCategory };
     } catch (error: any) {
         console.error("Ошибка при удалении категории:", error);
-        return { 
-            success: false, 
-            error: error.message || "Не удалось удалить категорию" 
+        return {
+            success: false,
+            error: error.message || "Не удалось удалить категорию"
         };
     }
 }
