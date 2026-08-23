@@ -18,6 +18,7 @@ export type MainAppProps = ({
     action?: "main_app";
     categories: Category[];
     records: _Record[];
+    userData: User;
 }) & {
     setCurrentUrl: (data: string) => void;
 };
@@ -40,10 +41,10 @@ export default function MainApp(props: MainAppProps) {
     useEffect(() => {
         setCurrentAction(((props.action === 'user_settings') ? 'user-settings' : 'default'));
     }, [props.action])
-    
+
     const [isModalOpened, setModalOpened] = useState(false);
     const [dataToOpen, setDataToOpen] = useState<_Record | null>(null);
-    
+
     const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
     const [isLoading, setLoading] = useState(false);
 
@@ -69,7 +70,7 @@ export default function MainApp(props: MainAppProps) {
 
     const handleCategoryCreate = async (categoryName: string) => {
         if (!categoryName.trim()) return;
-        
+
         setLoading(true);
         const res = await createCategory(categoryName, activeCategoryId);
         setLoading(false);
@@ -81,42 +82,121 @@ export default function MainApp(props: MainAppProps) {
         }
     }
 
+    const validateKeyPassword = async (value: string) => {
+        // if (login.trim().length < 5) {
+        //     setError("Логин должен быть длиннее, чем 4 символа");
+        //     return;
+        // }
+
+        setLoading(true);
+        // setError(null);
+
+        // let data = currentKeyPassword;
+        try {
+            if (!value) return false;
+
+            if (props.userData.keyPassword) {
+                const data = await ClientCrypto.decrypt(props.userData.keyPassword, value);
+
+                // const res = await updateUserData(editingData.id, {
+                // keyPassword: data,
+                // });
+
+                // alert(data.success)
+                if (data.success && data.data === value) {
+                    // setCurrentKeyPassword(data.data);
+                    setKeyPassword(data.data);
+                    setModalOpened(false);
+                    return true;
+                } else {
+                    // setError("Неправильный ключ-пароль!");
+                    setModalOpened(false);
+                    return false;
+                }
+            } else {
+                return false;
+                // const data = await ClientCrypto.encrypt(value, value);
+
+                // const res = await updateUserData(editingData.id, {
+                //     keyPassword: data,
+                // });
+
+                // if (res.success) {
+                //     setKeyPassword(value);
+                //     // setCurrentKeyPassword(value);
+                //     setModalOpened(false);
+                // } else {
+                //     // setError(res.error || "Не удалось сохранить");
+                // }
+            }
+
+            // const parsedCategoryId = categoryId === null ? null : Number(categoryId);
+
+            // const res = (editingData && editingData.id) ? await updateRecord({
+            //     recordId: editingData.id,
+
+            //     title,
+            //     categoryId: parsedCategoryId,
+            //     content: data,
+            //     isEncrypted
+            // }) : await createRecord({
+            //     title,
+            //     categoryId: parsedCategoryId,
+            //     content: data,
+            //     isEncrypted
+            // });
+
+
+        } catch (err) {
+            console.error(err);
+            return false;
+            // setError("Ошибка при шифровании или отправке данных");
+        } finally {
+            setLoading(false);
+        }
+    }
+
     const renderElements = (action: MainAppAction) => {
         if (props.action === 'user_settings') return (
             <UserDataEditor keyPassword={keyPassword} editingData={props.userData} setKeyPassword={setKeyPassword} />
         );
-        if (action === 'default') return (
-            <>
-                <RecordsList
-                    categories={props.categories}
-                    records={props.records}
-                    onSelect={handleRecordSelect}
-                    onDelete={handleRecordDelete}
-                    onDeleteCategory={handleCategoryDelete}
-                    onCategoryChange={(id) => setActiveCategoryId(id)}
-                />
-                <div className="main-app__buttons">
-                    <button
-                        className="main-app__button"
-                        onClick={() => setCurrentAction('record-creation')}
-                    >
-                        Создать запись
-                    </button>
-                    <button
-                        className="main-app__button main-app__button--secondary"
-                        onClick={() => setCurrentAction('category-creation')}
-                    >
-                        Создать категорию
-                    </button>
-                    {/* <button
+        if (action === 'default') {
+            const filtered = (keyPassword) ? props.records : props.records.filter(r => !r.isEncrypted);
+            return (
+                <>
+                    <RecordsList
+                        categories={props.categories}
+                        records={filtered}
+                        showEncrypted={!!keyPassword}
+                        onSelect={handleRecordSelect}
+                        onDelete={handleRecordDelete}
+                        onDeleteCategory={handleCategoryDelete}
+                        validateInputText={validateKeyPassword}
+                        onCategoryChange={(id) => setActiveCategoryId(id)}
+                    />
+                    <div className="main-app__buttons">
+                        <button
+                            className="main-app__button"
+                            onClick={() => setCurrentAction('record-creation')}
+                        >
+                            Создать запись
+                        </button>
+                        <button
+                            className="main-app__button main-app__button--secondary"
+                            onClick={() => setCurrentAction('category-creation')}
+                        >
+                            Создать категорию
+                        </button>
+                        {/* <button
                         className="main-app__button main-app__button--secondary"
                         onClick={() => setCurrentAction('category-creation')}
                     >
                         Загрузить с устройства
                     </button> */}
-                </div>
-            </>
-        );
+                    </div>
+                </>
+            );
+        };
 
         if (action === 'record-creation') return (
             <RecordManagementForm
@@ -152,7 +232,7 @@ export default function MainApp(props: MainAppProps) {
             <SimpleModal
                 type="prompt"
                 title={
-                    activeCategoryId 
+                    activeCategoryId
                         ? `Создать подкатегорию в "${props.categories.find(c => c.id === activeCategoryId)?.name}":`
                         : "Создать категорию в корневом каталоге:"
                 }

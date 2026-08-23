@@ -9,15 +9,16 @@
 }
 
 .record-management-form__block {
-    width: 50%;
+    width: 100%;
     align-items: center;
     display: flex;
     padding: 5px;
-    margin-top: 20px;
+    margin-top: 5px;
 }
 
+
 .record-management-form__block.content-block {
-    width: 70%;
+    width: 100%;
 }
 
 .record-management-form__label {
@@ -33,6 +34,20 @@
     border-radius: 5px;
     margin-left: 10px;
 }
+
+@media (min-width: 1024px) {
+    
+    .record-management-form__block {
+        width: 50%;
+        margin-top: 20px;
+    }
+
+    .record-management-form__block.content-block {
+        width: 70%;
+    }
+
+}
+
 
 .record-management-form__select {
     padding: 5px;

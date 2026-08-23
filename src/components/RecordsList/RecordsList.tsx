@@ -5,12 +5,15 @@ import "./RecordsList.css";
 import { Category, _Record } from '@/types/data';
 import { formatDate } from '@/utils/date';
 import SimpleModal from "../UI/SimpleModal/SimpleModal";
+import TextSelection from "../UI/TextSelection/TextSelection";
 
 type ViewMode = "categories" | "records";
 
 export default function RecordsList({
     categories,
     records,
+    validateInputText,
+    showEncrypted,
     onSelect,
     onDelete,
     onDeleteCategory,
@@ -19,6 +22,11 @@ export default function RecordsList({
 
     categories: Category[];
     records: _Record[];
+
+    validateInputText?: (data: string) => Promise<boolean>;
+
+    showEncrypted?: boolean;
+
     onSelect?: (data: _Record) => void;
     onDelete?: (data: _Record) => void;
     onDeleteCategory?: (id: number) => void;
@@ -29,6 +37,17 @@ export default function RecordsList({
     const [currentCategoryId, setCurrentCategoryId] = useState<number | null>(null);
     const [isDeleteModalOpen, setDeleteModalOpen] = useState<{ data: _Record; } | null>(null);
     const [isDeleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState<{ data: Category } | null>(null);
+
+    const [isKeyPassModalOpened, setKeyPassModalOpened] = useState(false);
+
+    const [inputFilterText, setInputFilterText] = useState('');
+    const [filterText, setFilterText] = useState('');
+
+    const filtered = records.filter(record => {
+        const matchText = record.title.toLowerCase().includes(filterText.toLowerCase());
+
+        return matchText;
+    });
 
     const onConfirmDelete = async () => {
         if (isDeleteModalOpen) {
@@ -49,8 +68,8 @@ export default function RecordsList({
     }, [categories, currentCategoryId]);
 
     const currentFolderRecords = useMemo(() => {
-        return records.filter(rec => rec.categoryId === currentCategoryId);
-    }, [records, currentCategoryId]);
+        return filtered.filter(rec => rec.categoryId === currentCategoryId);
+    }, [filtered, currentCategoryId]);
 
     const breadcrumbs = useMemo(() => {
         const crumbs: Category[] = [];
@@ -67,6 +86,20 @@ export default function RecordsList({
         }
         return crumbs;
     }, [categories, currentCategoryId]);
+
+    const handleSearchButton = async () => {
+        const validationResult = await validateInputText?.(inputFilterText);
+        if (validationResult) {
+            // alert('Ключ-пароль правильный!!!');
+            setKeyPassModalOpened(true);
+
+            setFilterText('');
+            setInputFilterText('');
+        } else {
+            setFilterText(inputFilterText);
+        }
+
+    }
 
     return (
         <div className="records-list">
@@ -86,6 +119,19 @@ export default function RecordsList({
                         <option value="categories">по категориям</option>
                         <option value="records">списком записей</option>
                     </select>
+                </div>
+                <div className="records-list-filter">
+                    <span className="records-list-filter__label">Поиск записей:</span>
+                    <input
+                        type="text"
+                        className="records-list-filter__input"
+                        value={inputFilterText}
+                        onChange={(e) => setInputFilterText(e.target.value)}
+                    />
+                    <button className="records-list-filter__button" onClick={handleSearchButton}>
+                        <span className="--mobile-only">⇒</span>
+                        <span className="--desktop-only">Найти ⇒</span>
+                    </button>
                 </div>
             </div>
 
@@ -130,7 +176,7 @@ export default function RecordsList({
                             <div
                                 className="records-list-item type-folder"
                                 key={category.id}
-                                // onClick={() => changeCategory(category.id)}
+                            // onClick={() => changeCategory(category.id)}
                             >
                                 <div className="records-list-item__left" onClick={() => changeCategory(category.id)}>
                                     <span className="records-list-item__name">{category.name}</span>
@@ -148,7 +194,9 @@ export default function RecordsList({
                         {currentFolderRecords.map(r => (
                             <RecordRow
                                 key={r.id}
+                                filterText={filterText}
                                 record={r}
+                                showEncrypted={showEncrypted}
                                 onSelect={onSelect}
                                 onDelete={(data) => setDeleteModalOpen({ data })}
                             />
@@ -161,11 +209,13 @@ export default function RecordsList({
                 )}
 
                 {viewMode === "records" && (
-                    records.length > 0 ? (
-                        records.map(r => (
+                    filtered.length > 0 ? (
+                        filtered.map(r => (
                             <RecordRow
                                 key={r.id}
                                 record={r}
+                                showEncrypted={showEncrypted}
+                                filterText={filterText}
                                 onSelect={onSelect}
                                 onDelete={(data) => setDeleteModalOpen({ data })}
                             />
@@ -185,6 +235,16 @@ export default function RecordsList({
                     disableButtons={isLoading}
                     onConfirm={onConfirmDelete}
                     onCancel={() => setDeleteModalOpen(null)}
+                />
+            )}
+
+            {isKeyPassModalOpened && (
+                <SimpleModal
+                    type="info"
+                    title={`Введен правильный ключ-пароль! Доступ разблокирован!`}
+                    confirmBtnText="Продолжить"
+                    disableButtons={isLoading}
+                    onConfirm={() => setKeyPassModalOpened(false)}
                 />
             )}
 
@@ -209,10 +269,14 @@ export default function RecordsList({
 }
 
 function RecordRow({
+    showEncrypted,
+    filterText,
     record,
     onSelect,
     onDelete
 }: {
+    showEncrypted?: boolean;
+    filterText?: string;
     record: _Record;
     onSelect?: (data: _Record) => void;
     onDelete: (data: _Record) => void;
@@ -220,9 +284,14 @@ function RecordRow({
     return (
         <div className="records-list-item type-file">
             <div className="records-list-item__left" onClick={() => onSelect?.(record)}>
-                <span className="records-list-item__name">{record.title}</span>
+                <span className="records-list-item__name">
+                    <TextSelection
+                        text={record.title}
+                        selection={filterText}
+                    />
+                </span>
             </div>
-            <div className="records-list-item__right">
+            <div className="records-list-item__right --desktop-only">
                 <div className="records-list-item__infobox lf">
                     <span className="records-list-item__label">Создана:</span>
                     <div className="records-list-item__value">{formatDate(record.createdAt)}</div>
@@ -231,15 +300,35 @@ function RecordRow({
                     <span className="records-list-item__label">Отредактирована:</span>
                     <div className="records-list-item__value">{formatDate(record.updatedAt)}</div>
                 </div>
-                <div className="records-list-item__infobox">
+                {(showEncrypted) && <div className="records-list-item__infobox">
                     <span className="records-list-item__label">Зашифрована:</span>
                     <div className="records-list-item__value">{record.isEncrypted ? "✔" : "⨉"}</div>
-                </div>
+                </div>}
                 <button
                     className="records-list-item__button"
                     onClick={() => onDelete(record)}
                 >
                     Удалить
+                </button>
+            </div>
+            <div className="records-list-item__right --mobile-only">
+                {/* <div className="records-list-item__infobox lf">
+                    <span className="records-list-item__label">Создана:</span>
+                    <div className="records-list-item__value">{formatDate(record.createdAt)}</div>
+                </div>
+                <div className="records-list-item__infobox lf">
+                    <span className="records-list-item__label">Отредактирована:</span>
+                    <div className="records-list-item__value">{formatDate(record.updatedAt)}</div>
+                </div>
+                {(showEncrypted) && <div className="records-list-item__infobox">
+                    <span className="records-list-item__label">Зашифрована:</span>
+                    <div className="records-list-item__value">{record.isEncrypted ? "✔" : "⨉"}</div>
+                </div>} */}
+                <button
+                    className="records-list-item__button"
+                    onClick={() => onDelete(record)}
+                >
+                    ⨉
                 </button>
             </div>
         </div>

@@ -1,4 +1,5 @@
 .records-list {
+    position: relative;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -17,7 +18,8 @@
 .records-list__data {
     border: 3px solid var(--primary-color);
     border-radius: 5px;
-    height: 400px;
+    height: 70%;
+    /* height: 400px; */
     overflow-y: auto;
 }
 
@@ -48,7 +50,7 @@
 }
 
 .records-list-item__left {
-    width: 30%;
+    width: 70%;
     display: flex;
     align-items: center;
     justify-content: left;
@@ -59,7 +61,7 @@
 }
 
 .records-list-item__right {
-    width: 70%;
+    width: 30%;
     display: flex;
     align-items: center;
     justify-content: right;
@@ -126,24 +128,54 @@
 .records-list__filters {
     width: 100%;
     display: flex;
+    flex-direction: column;
+    align-items: center;
     padding: 10px;
     border: 2px solid var(--primary-color);
     margin-bottom: 20px;
+    gap: 20px;
 }
+
+/* .records-list__filter {
+    gap: 10px;
+} */
 
 .records-list-filter__label {
     color: var(--primary-color);
 }
 
-.records-list-filter__select {
+.records-list-filter__select,
+.records-list-filter__button {
+    border: 2px solid var(--primary-color);
     background-color: var(--primary-color);
     color: var(--text-color);
-    padding: 4px 8px;
-    margin-left: 10px;
+    padding: 2px 8px;
     cursor: pointer;
+    transition: all 0.3s ease 0s;
 }
 
-.records-list-filter__select:focus {
+.records-list-filter__select {
+    margin-left: 10px;
+}
+
+.records-list-filter__input {
+    width: 80%;
+    /* width: 350px; */
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    background-color: var(--text-color);
+    padding: 2px 2px;
+    margin-left: 10px;
+    /* cursor: pointer; */
+}
+
+.records-list-filter__button:hover {
+    background-color: var(--text-color);
+    color: var(--primary-color);
+}
+
+.records-list-filter__select:focus,
+.records-list-filter__input:focus {
     outline: 2px solid var(--secondary-color);
 }
 
@@ -214,4 +246,45 @@
     color: #888;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+
+.records-list .--mobile-only {
+    display: flex;
+}
+
+.records-list .--desktop-only {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+
+    .records-list__filters {
+        flex-direction: row;
+    }
+
+    .records-list-filter__input {
+        width: 350px;
+    }
+
+    .records-list .--mobile-only {
+        display: none;
+    }
+
+    .records-list .--desktop-only {
+        display: flex;
+    }
+
+    .records-list__data {
+        height: 400px;
+    }
+
+    .records-list-item__left {
+        width: 30%;
+    }
+
+    .records-list-item__right {
+        width: 70%;
+    }
+
 }

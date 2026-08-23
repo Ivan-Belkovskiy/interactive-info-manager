@@ -43,7 +43,7 @@ const NAVIGATION_ELEMENTS: AppNavigationMain = {
             linkUrl: '/settings',
             textContent: 'Настройки аккаунта',
         },
-    ]
+    ],
 }
 
 export default function AppNavigation({ currentUrl, setCurrentUrl }: { currentUrl: string; setCurrentUrl: (data: string) => void; }) {
@@ -75,7 +75,7 @@ export default function AppNavigation({ currentUrl, setCurrentUrl }: { currentUr
 
     return (
         <div className="app-navigation">
-            <div className="app-navigation__left">
+            <div className="app-navigation__left --desktop-only">
                 {renderElements('left')}
                 {/* <h1 className="app-navigation-element app-logo">Interactive Info Manager</h1> */}
             </div>
@@ -84,7 +84,7 @@ export default function AppNavigation({ currentUrl, setCurrentUrl }: { currentUr
                 {/* <button className="app-navigation-element app-navigation__button">Мои записи</button>
                 <button className="app-navigation-element app-navigation__button">Настройки аккаунта</button> */}
             </div>
-            <div className="app-navigation__right">
+            <div className="app-navigation__right --desktop-only">
                 {renderElements('right')}
                 {/* <button className="app-navigation-element app-navigation__button">Настройки аккаунта</button> */}
             </div>

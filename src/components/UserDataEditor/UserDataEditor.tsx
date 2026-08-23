@@ -146,7 +146,7 @@ export default function UserDataEditor({
                 />
             </div>
 
-            <div className="user-data-editor__block">
+            {(!currentKeyPassword) && <div className="user-data-editor__block">
                 <span className="user-data-editor__label">Ключ-пароль:</span>
                 {(currentKeyPassword) ? (
                     <>
@@ -172,12 +172,8 @@ export default function UserDataEditor({
                         setModalOpened(true);
                     }}>Создать ключ-пароль</button>
                 )}
-                {/* <input
-                    className="user-data-editor__input"
-                    value={login}
-                    onChange={(e) => setTitle(e.target.value)}
-                    /> */}
-            </div>
+            </div>}
+
             {error && <div className="user-data-editor__error">{error}</div>}
 
             {/* <div className="user-data-editor__block">

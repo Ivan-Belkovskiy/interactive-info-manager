@@ -9,11 +9,19 @@
 }
 
 .user-data-editor__block {
-    width: 50%;
+    width: 100%;
     align-items: center;
     display: flex;
     padding: 5px;
     margin-top: 20px;
+}
+
+@media (min-width: 1024px) {
+    
+    .user-data-editor__block {
+        width: 50%;
+    }
+
 }
 
 .user-data-editor__block.content-block {

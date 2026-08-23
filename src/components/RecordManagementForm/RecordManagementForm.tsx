@@ -145,7 +145,7 @@ export default function RecordManagementForm({
                 </select>
             </div>
 
-            <div className="record-management-form__block">
+            {(keyPassword) && <div className="record-management-form__block">
                 <span className="record-management-form__label">Шифровать данные?</span>
                 <SimpleCheckbox
                     disabled={!keyPassword}
@@ -156,7 +156,7 @@ export default function RecordManagementForm({
                         } else setEncrypted(v);
                     }}
                 />
-            </div>
+            </div>}
 
             <div className="record-management-form__block content-block">
                 <TextEditor
