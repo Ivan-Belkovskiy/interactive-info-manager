@@ -15,7 +15,7 @@ export default function MainPage({ categories, records, userData }: { categories
             <AppNavigation currentUrl={currentUrl} setCurrentUrl={setCurrentUrl} />
             <div className="main-page">
                 {(currentUrl === '/settings') ? (
-                    <MainApp userData={userData} action={"user_settings"} setCurrentUrl={setCurrentUrl} />
+                    <MainApp userData={userData} categories={categories} records={records} action={"user_settings"} setCurrentUrl={setCurrentUrl} />
                 ) : (
                     <MainApp userData={userData} categories={categories} records={records} action={"main_app"} setCurrentUrl={setCurrentUrl} />
                 )}

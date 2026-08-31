@@ -7,19 +7,28 @@ import { useEffect, useState } from "react";
 import RecordManagementForm from "../RecordManagementForm/RecordManagementForm";
 import SimpleModal from "../UI/SimpleModal/SimpleModal";
 import { ClientCrypto } from "@/modules/ClientCrypto";
-import { deleteRecord, createCategory, deleteCategory } from "@/app/actions";
+import { deleteRecord, createCategory, deleteCategory, replaceRecordsAndKeyPassword } from "@/app/actions";
 import UserDataEditor from "../UserDataEditor/UserDataEditor";
 import AppNavigation from "../AppNavigation/AppNavigation";
 
-export type MainAppProps = ({
-    action: "user_settings";
-    userData: User;
-} | {
-    action?: "main_app";
+// export type MainAppProps = ({
+//     action: "user_settings";
+//     userData: User;
+// } | {
+//     action?: "main_app";
+//     categories: Category[];
+//     records: _Record[];
+//     userData: User;
+// }) & {
+//     setCurrentUrl: (data: string) => void;
+// };
+
+export interface MainAppProps {
+    action?: string;
     categories: Category[];
     records: _Record[];
     userData: User;
-}) & {
+
     setCurrentUrl: (data: string) => void;
 };
 
@@ -38,12 +47,59 @@ export default function MainApp(props: MainAppProps) {
     const [currentAction, setCurrentAction] = useState<MainAppAction>(((props.action === 'user_settings') ? 'user-settings' : 'default'));
     const [editingRecordData, setEditingRecordData] = useState<Partial<_Record> | null>(null);
 
+    const [openedInfoModal, setOpenedInfoModal] = useState<string | null>(null);
+
+    useEffect(() => {
+
+        const keydownHandler = (e: KeyboardEvent) => {
+            if (e.key === 'F12') {
+                setOpenedInfoModal('f12-key-info');
+                e.preventDefault();
+            }
+        }
+
+        const contextMenuHandler = (e: MouseEvent) => {
+            e.preventDefault();
+        }
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('keydown', keydownHandler);
+            window.addEventListener('contextmenu', contextMenuHandler);
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('keydown', keydownHandler);
+                window.removeEventListener('contextmenu', contextMenuHandler);
+            }
+
+        };
+    }, []);
+
     useEffect(() => {
         setCurrentAction(((props.action === 'user_settings') ? 'user-settings' : 'default'));
     }, [props.action])
 
     const [isModalOpened, setModalOpened] = useState(false);
     const [dataToOpen, setDataToOpen] = useState<_Record | null>(null);
+
+    const [isCategoryModalOpened, setCategoryModalOpened] = useState(false);
+
+    interface ReplaceKeyModalProps {
+        isOpened?: boolean;
+        type?: 'progress' | 'info' | 'end-info';
+        current?: number;
+        all?: number;
+
+        replaceData?: {
+            newKeyPassword: string;
+            records: _Record[];
+        };
+    };
+
+    const [replaceKeyModalProps, setReplaceKeyModalProps] = useState<ReplaceKeyModalProps>({
+        isOpened: false
+    });
 
     const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
     const [isLoading, setLoading] = useState(false);
@@ -76,7 +132,8 @@ export default function MainApp(props: MainAppProps) {
         setLoading(false);
 
         if (res.success) {
-            setCurrentAction('default');
+            setCategoryModalOpened(false);
+            // setCurrentAction('default');
         } else {
             alert(res.error || "Не удалось создать категорию");
         }
@@ -156,9 +213,103 @@ export default function MainApp(props: MainAppProps) {
         }
     }
 
+    const replaceKeyPassword = async (newKeyPassword: string) => {
+        const oldKeyPassword = keyPassword;
+
+        if (!oldKeyPassword || !newKeyPassword) return;
+
+        if (props.records.length > 0) {
+
+
+            const oldEncrypted = props.records.filter(r => r.isEncrypted);
+            const newEncrypted = [];
+
+            let processed = 0,
+                all = oldEncrypted.length;
+
+            setReplaceKeyModalProps({
+                type: "progress",
+                isOpened: true,
+                current: processed,
+                all,
+            });
+
+            if (oldEncrypted.length > 0) {
+                for (let i = 0; i < oldEncrypted.length; i++) {
+                    const current = oldEncrypted[i];
+
+                    const decryptResult = await ClientCrypto.decrypt(current.content, oldKeyPassword);
+
+                    if (decryptResult.success) {
+                        const encryptedContent = await ClientCrypto.encrypt(decryptResult.data, newKeyPassword);
+
+                        if (encryptedContent) {
+                            current.content = encryptedContent;
+                            newEncrypted.push(current);
+                            processed++;
+                            setReplaceKeyModalProps({
+                                type: "progress",
+                                isOpened: true,
+                                current: processed,
+                                all,
+                            });
+                        }
+                    }
+
+                }
+
+                // alert(`Перешифрование записей завершено: ${processed} / ${all} `)
+            }
+
+            setReplaceKeyModalProps({
+                type: "info",
+                isOpened: true,
+                current: processed,
+                all,
+
+                replaceData: {
+                    newKeyPassword,
+                    records: newEncrypted,
+                }
+            });
+
+        }
+    }
+
+    const handleUpdateReplacedData = async () => {
+        if (!replaceKeyModalProps.replaceData) return;
+
+        try {
+            setLoading(true);
+
+            const encryptedKeyPassword = await ClientCrypto.encrypt(replaceKeyModalProps.replaceData.newKeyPassword, replaceKeyModalProps.replaceData.newKeyPassword);
+
+            const res = await replaceRecordsAndKeyPassword(replaceKeyModalProps.replaceData.records, encryptedKeyPassword);
+
+            if (res.success) {
+                setReplaceKeyModalProps({
+                    isOpened: true,
+                    type: 'end-info',
+                });
+
+                setKeyPassword(replaceKeyModalProps.replaceData.newKeyPassword);
+            }
+
+            setLoading(false);
+
+        } catch (error) {
+
+        }
+    }
+
     const renderElements = (action: MainAppAction) => {
         if (props.action === 'user_settings') return (
-            <UserDataEditor keyPassword={keyPassword} editingData={props.userData} setKeyPassword={setKeyPassword} />
+            <UserDataEditor
+                keyPassword={keyPassword}
+                editingData={props.userData}
+                setKeyPassword={setKeyPassword}
+                onKeyPasswordReplace={replaceKeyPassword}
+            />
         );
         if (action === 'default') {
             const filtered = (keyPassword) ? props.records : props.records.filter(r => !r.isEncrypted);
@@ -183,7 +334,8 @@ export default function MainApp(props: MainAppProps) {
                         </button>
                         <button
                             className="main-app__button main-app__button--secondary"
-                            onClick={() => setCurrentAction('category-creation')}
+                            onClick={() => setCategoryModalOpened(true)}
+                        // onClick={() => setCurrentAction('category-creation')}
                         >
                             Создать категорию
                         </button>
@@ -228,22 +380,22 @@ export default function MainApp(props: MainAppProps) {
             />
         );
 
-        if (action === 'category-creation') return (
-            <SimpleModal
-                type="prompt"
-                title={
-                    activeCategoryId
-                        ? `Создать подкатегорию в "${props.categories.find(c => c.id === activeCategoryId)?.name}":`
-                        : "Создать категорию в корневом каталоге:"
-                }
-                // placeholder="Название категории..."
-                confirmBtnText="Создать"
-                cancelBtnText="Отмена"
-                disableButtons={isLoading}
-                onConfirm={handleCategoryCreate}
-                onCancel={() => setCurrentAction('default')}
-            />
-        );
+        // if (action === 'category-creation') return (
+        // <SimpleModal
+        //     type="prompt"
+        //     title={
+        //         activeCategoryId
+        //             ? `Создать подкатегорию в "${props.categories.find(c => c.id === activeCategoryId)?.name}":`
+        //             : "Создать категорию в корневом каталоге:"
+        //     }
+        //     // placeholder="Название категории..."
+        //     confirmBtnText="Создать"
+        //     cancelBtnText="Отмена"
+        //     disableButtons={isLoading}
+        //     onConfirm={handleCategoryCreate}
+        //     onCancel={() => setCurrentAction('default')}
+        // />
+        // );
     }
 
 
@@ -256,6 +408,21 @@ export default function MainApp(props: MainAppProps) {
                 (currentAction !== 'default') && <h1 className="main-app__title">{ActionTranslations[currentAction]}</h1>
             )}
             {renderElements(currentAction)}
+
+            {/* {isModalOpened && <SimpleModal
+                // type="prompt"
+                type="confirm"
+                title="Данная запись зашифрована! Пожалуйста, введите ключ-пароль в настройках аккаунта!"
+                // title="Введите ключ-пароль:"
+                onConfirm={() => {
+                    props.setCurrentUrl('/settings');
+                    // setKeyPassword(value);
+                    setModalOpened(false);
+                    // if (dataToOpen) handleRecordSelect(dataToOpen, value);
+                }}
+                onCancel={() => setModalOpened(false)}
+            />} */}
+
             {isModalOpened && <SimpleModal
                 // type="prompt"
                 type="confirm"
@@ -269,6 +436,69 @@ export default function MainApp(props: MainAppProps) {
                 }}
                 onCancel={() => setModalOpened(false)}
             />}
+
+            {replaceKeyModalProps.isOpened && (
+                (replaceKeyModalProps.type === 'end-info') ? (
+                    <SimpleModal
+                        type="info"
+                        title={`Данные и ключ-пароль сохранены!!!`}
+                        onConfirm={() => setReplaceKeyModalProps({ isOpened: false })}
+                        // disableButtons={}
+                    />
+                ) :
+                (replaceKeyModalProps.type === 'progress') ? (
+                    <SimpleModal
+                        type="progress"
+                        title={`Шифрование данных новым ключом-паролем...`}
+                        current={replaceKeyModalProps.current || 0}
+                        all={replaceKeyModalProps.all || 99999}
+                        displayPercent
+                    />
+                ) : (
+                    <SimpleModal
+                        type="confirm"
+                        title={`Подтвердить изменение ключа-пароля`}
+                        message="После подтверждения ключ-пароль и перешифрованные записи будут обновлены в базе данных"
+
+                        confirmBtnText="Подтвердить"
+                        cancelBtnText="Отмена"
+
+                        onConfirm={handleUpdateReplacedData}
+                        onCancel={() => setReplaceKeyModalProps({ isOpened: false })}
+
+                        disableButtons={isLoading}
+                    />
+                )
+            )}
+
+            {openedInfoModal === 'f12-key-info' && (
+                <SimpleModal
+                    // type="prompt"
+                    type="info"
+                    title="Открытие инструментов разработчика [F12] заблокировано!"
+                    // title="Введите ключ-пароль:"
+                    onConfirm={() => {
+                        setOpenedInfoModal(null);
+                    }}
+                />
+            )}
+
+            {isCategoryModalOpened && (
+                <SimpleModal
+                    type="prompt"
+                    title={
+                        activeCategoryId
+                            ? `Создать подкатегорию в "${props.categories.find(c => c.id === activeCategoryId)?.name}":`
+                            : "Создать категорию в корневом каталоге:"
+                    }
+                    // placeholder="Название категории..."
+                    confirmBtnText="Создать"
+                    cancelBtnText="Отмена"
+                    disableButtons={isLoading}
+                    onConfirm={handleCategoryCreate}
+                    onCancel={() => setCategoryModalOpened(false)}
+                />
+            )}
         </div>
     )
 }

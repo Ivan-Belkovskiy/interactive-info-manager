@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import './RecordManagementForm.css';
 import SimpleCheckbox from '../UI/SimpleCheckbox/SimpleCheckbox';
 import TextEditor from '../UI/TextEditor/TextEditor';
@@ -30,6 +30,8 @@ export default function RecordManagementForm({
     onClose }: RecordManagementFormProps) {
     const [isLoading, setLoading] = useState(false);
     const [title, setTitle] = useState('');
+
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const [categoryId, setCategoryId] = useState<number | null>(
         editingData ? (editingData.categoryId || null) : defaultCategoryId
@@ -68,6 +70,23 @@ export default function RecordManagementForm({
             }
         }
     }, [editingData]);
+
+    const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+
+            const reader = new FileReader();
+
+            reader.readAsText(file);
+
+            reader.onload = () => {
+                const fileName = file.name.slice(0, file.name.lastIndexOf('.'));
+                setTitle(fileName);
+                if (typeof reader.result === 'string') setContent(reader.result);
+            }
+
+        }
+    }
 
     const handleSubmit = async () => {
         if (!title.trim()) {
@@ -180,6 +199,17 @@ export default function RecordManagementForm({
                         </>
                     ) : "Сохранить"}
                 </button>
+
+                <button
+                    type="button"
+                    className="record-management-form__button button--cancel"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading}
+                >
+                    Загрузить из файла
+                </button>
+
+                <input type="file" hidden ref={fileInputRef} onChange={handleFileUpload} accept='.txt' />
 
                 <button
                     type="button"

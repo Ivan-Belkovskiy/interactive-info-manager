@@ -15,6 +15,8 @@ export interface UserDataEditorProps {
     openPasswordModal?: () => void;
     setKeyPassword?: Dispatch<SetStateAction<string | null>>;
 
+    onKeyPasswordReplace?: (newKeyPassword: string) => void;
+
     keyPassword?: string | null;
     editingData?: Partial<User>;
     // onClose: () => void;
@@ -25,6 +27,7 @@ export default function UserDataEditor({
     keyPassword,
     setKeyPassword,
     editingData,
+    onKeyPasswordReplace
     // onClose 
 }: UserDataEditorProps) {
     const [isLoading, setLoading] = useState(false);
@@ -36,7 +39,7 @@ export default function UserDataEditor({
     const [error, setError] = useState<string | null>(null);
 
 
-    const [isModalOpened, setModalOpened] = useState(false);
+    const [openedModal, setModalOpened] = useState<"enter-key-pass" | "replace-key-pass" | null>(null);
 
 
 
@@ -57,6 +60,13 @@ export default function UserDataEditor({
     }, [editingData]);
 
     const handleSubmit = async (value: string) => {
+
+        if (openedModal === 'replace-key-pass') {
+            onKeyPasswordReplace?.(value);
+            setModalOpened(null);
+            return;
+        }
+
         if (login.trim().length < 5) {
             setError("Логин должен быть длиннее, чем 4 символа");
             return;
@@ -79,10 +89,10 @@ export default function UserDataEditor({
                 if (data.success && data.data === value) {
                     setCurrentKeyPassword(data.data);
                     setKeyPassword?.(data.data);
-                    setModalOpened(false);
+                    setModalOpened(null);
                 } else {
                     setError("Неправильный ключ-пароль!");
-                    setModalOpened(false);
+                    setModalOpened(null);
                 }
             } else {
                 const data = await ClientCrypto.encrypt(value, value);
@@ -93,7 +103,7 @@ export default function UserDataEditor({
 
                 if (res.success) {
                     setCurrentKeyPassword(value);
-                    setModalOpened(false);
+                    setModalOpened(null);
                 } else {
                     setError(res.error || "Не удалось сохранить");
                 }
@@ -146,22 +156,29 @@ export default function UserDataEditor({
                 />
             </div>
 
-            {(!currentKeyPassword) && <div className="user-data-editor__block">
+            {(!currentKeyPassword || keyPassword) && <div className="user-data-editor__block">
                 <span className="user-data-editor__label">Ключ-пароль:</span>
                 {(currentKeyPassword) ? (
                     <>
-                        <input
+                        {/* <input
                             className="user-data-editor__input"
                             value={keyPassword || "*******"}
                             disabled
                         // onChange={(e) => setTitle(e.target.value)}
-                        />
+                        /> */}
                         {(keyPassword) ? (
-                            <button className={`user-data-editor__button inline-button correct-key-password`}>✔ Ключ-пароль введен!</button>
+                            <>
+                                <button className={`user-data-editor__button inline-button correct-key-password`}>✔ Ключ-пароль введен!</button>
+                                <button className={`user-data-editor__button inline-button`} onClick={() => {
+                                    setError(null);
+                                    setModalOpened('replace-key-pass');
+                                }}>Заменить ключ-пароль</button>
+                                {/* <input type="text" className="user-data-editor__input" /> */}
+                            </>
                         ) : (
                             <button className="user-data-editor__button inline-button" onClick={() => {
                                 setError(null);
-                                setModalOpened(true);
+                                setModalOpened('enter-key-pass');
                             }}>Ввести ключ-пароль</button>
                         )
                         }
@@ -169,7 +186,7 @@ export default function UserDataEditor({
                 ) : (
                     <button className="user-data-editor__button inline-button" onClick={() => {
                         setError(null);
-                        setModalOpened(true);
+                        setModalOpened('enter-key-pass');
                     }}>Создать ключ-пароль</button>
                 )}
             </div>}
@@ -205,11 +222,12 @@ export default function UserDataEditor({
                 </button>
             </div>
 
-            {isModalOpened && <SimpleModal
+            {openedModal && <SimpleModal
                 type="prompt"
-                title={(editingData?.keyPassword) ? "Введите ключ-пароль этого пользователя:" : "Введите новый ключ-пароль:"}
+                title={(editingData?.keyPassword && openedModal === 'enter-key-pass') ? "Введите ключ-пароль этого пользователя:" : "Введите новый ключ-пароль:"}
+                message={(openedModal === 'replace-key-pass') ? 'Все имеющиеся зашифрованные записи будут перешифрованы новым ключом! Этот процесс может быть длительным!' : ''}
                 onConfirm={handleSubmit}
-                onCancel={() => setModalOpened(false)}
+                onCancel={() => setModalOpened(null)}
             />}
         </div>
     )

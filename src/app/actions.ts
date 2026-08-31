@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { User } from "@/types/data";
+import { _Record, User } from "@/types/data";
 
 
 const SESSION_EXPIRATION = 7 * 24 * 60 * 60 * 1000;
@@ -259,5 +259,51 @@ export async function deleteCategory(id: number) {
             success: false,
             error: error.message || "Не удалось удалить категорию"
         };
+    }
+}
+
+
+export async function replaceRecordsAndKeyPassword(records: _Record[], newKeyPassword: string) {
+    if (!records || !newKeyPassword) return { success: false, error: "Новые данные не предоставлены!" };
+    const cookieStore = await cookies();
+    const userLogin = cookieStore.get("user_session")?.value;
+
+    if (!userLogin) return { success: false, error: "Не авторизован" };
+
+    try {
+
+        const user = await prisma.users.findUnique({
+            where: {
+                login: userLogin,
+            }
+        });
+
+        if (!user) return { success: false, error: "Пользователь не найден" };
+
+        const res = await prisma.$transaction(async (p) => {
+            const updatedUser = await p.users.update({
+                where: { id: user.id },
+                data: {
+                    keyPassword: newKeyPassword,
+                }
+            });
+
+            const deletedRecords = await p.records.deleteMany({
+                where: {
+                    userId: user.id,
+                    isEncrypted: true,
+                },
+            });
+
+            return await p.records.createMany({
+                data: records,
+            });
+
+        });
+
+        return { success: true, updatedRecords: res.count };
+
+    } catch (error) {
+        return { success: false, error };
     }
 }

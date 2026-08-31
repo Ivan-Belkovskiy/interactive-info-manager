@@ -39,6 +39,7 @@ export default function RecordsList({
     const [isDeleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState<{ data: Category } | null>(null);
 
     const [isKeyPassModalOpened, setKeyPassModalOpened] = useState(false);
+    const [isReplaceKeyModalOpened, setReplaceKeyModalOpened] = useState<{ current: number; all: number; } | null>(null);
 
     const [inputFilterText, setInputFilterText] = useState('');
     const [filterText, setFilterText] = useState('');
@@ -137,28 +138,34 @@ export default function RecordsList({
 
             {viewMode === "categories" && (
                 <div className="records-list__breadcrumbs">
-                    <span
-                        className={`breadcrumb-item ${currentCategoryId === null ? 'active' : ''}`}
-                        onClick={() => changeCategory(null)}
-                    >
-                        Корневой каталог
-                    </span>
-                    {breadcrumbs.map((crumb) => (
-                        <span key={crumb.id} className="breadcrumb-wrapper">
-                            <span className="breadcrumb-separator">/</span>
+                    {(filterText.length > 0) ? (
+                        <span className="breadcrumb-item active">Результаты поиска:</span>
+                    ) : (
+                        <>
                             <span
-                                className={`breadcrumb-item ${currentCategoryId === crumb.id ? 'active' : ''}`}
-                                onClick={() => changeCategory(crumb.id)}
+                                className={`breadcrumb-item ${currentCategoryId === null ? 'active' : ''}`}
+                                onClick={() => changeCategory(null)}
                             >
-                                {crumb.name}
+                                Корневой каталог
                             </span>
-                        </span>
-                    ))}
+                            {breadcrumbs.map((crumb) => (
+                                <span key={crumb.id} className="breadcrumb-wrapper">
+                                    <span className="breadcrumb-separator">/</span>
+                                    <span
+                                        className={`breadcrumb-item ${currentCategoryId === crumb.id ? 'active' : ''}`}
+                                        onClick={() => changeCategory(crumb.id)}
+                                    >
+                                        {crumb.name}
+                                    </span>
+                                </span>
+                            ))}
+                        </>
+                    )}
                 </div>
             )}
 
             <div className="records-list__data">
-                {viewMode === "categories" && (
+                {(viewMode === "categories" && filterText.length === 0) && (
                     <>
                         {currentCategoryId !== null && (
                             <div
@@ -208,7 +215,18 @@ export default function RecordsList({
                     </>
                 )}
 
-                {viewMode === "records" && (
+                {(filterText.length > 0) && (
+                    <div
+                        className="records-list-item folder-up"
+                        onClick={() => {
+                            setFilterText('');
+                        }}
+                    >
+                        <span className="records-list-item__name"> .. (Назад к {(viewMode === 'categories' ? 'текущей категории' : 'списку записей')})</span>
+                    </div>
+                )}
+
+                {(viewMode === "records" || filterText.length > 0) && (
                     filtered.length > 0 ? (
                         filtered.map(r => (
                             <RecordRow
@@ -225,6 +243,19 @@ export default function RecordsList({
                     )
                 )}
             </div>
+
+            {/* {isReplaceKeyModalOpened && (
+                <SimpleModal
+                    type="progress"
+                    title={`Шифрование данных новым ключом-паролем...`}
+                    current={isReplaceKeyModalOpened.current}
+                    all={isReplaceKeyModalOpened.all}
+                    displayPercent
+                    // current={}
+                    // onConfirm={onConfirmDelete}
+                    // onCancel={() => setDeleteModalOpen(null)}
+                />
+            )} */}
 
             {isDeleteModalOpen && (
                 <SimpleModal

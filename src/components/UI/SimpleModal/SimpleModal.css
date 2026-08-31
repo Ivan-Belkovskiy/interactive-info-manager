@@ -35,6 +35,7 @@
     padding: 3px;
     font-size: 18px;
     border-radius: 5px;
+
 }
 
 .simple-modal__input:focus {
@@ -67,4 +68,8 @@
 .simple-modal__button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.simple-modal__message {
+    margin-bottom: 10px;
 }
