@@ -154,6 +154,39 @@ export async function updateRecord({
     }
 }
 
+export interface RecordDataToUpload {
+    title: string;
+    isEncrypted: boolean;
+    content: string;
+    categoryId: number | null;
+}
+
+export async function uploadManyRecords(records: RecordDataToUpload[]) {
+    const cookieStore = await cookies();
+    const userLogin = cookieStore.get("user_session")?.value;
+
+    if (!userLogin) return { success: false, error: "Не авторизован" };
+
+    try {
+        const user = await prisma.users.findUnique({ where: { login: userLogin } });
+        if (!user) return { success: false, error: "Пользователь не найден" };
+
+        const newRecords = await prisma.records.createMany({
+            data: records.map(r => ({
+                ...r,
+                userId: user.id,
+            }))
+        });
+
+        revalidatePath('/');
+
+        return { success: true, data: newRecords };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Не удалось сохранить" };
+    }
+}
+
 export async function deleteRecord(id: number) {
     const cookieStore = await cookies();
     const userLogin = cookieStore.get("user_session")?.value;

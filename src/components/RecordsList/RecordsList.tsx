@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import "./RecordsList.css";
 import { Category, _Record } from '@/types/data';
 import { formatDate } from '@/utils/date';
@@ -17,7 +17,9 @@ export default function RecordsList({
     onSelect,
     onDelete,
     onDeleteCategory,
-    onCategoryChange
+
+    activeCategoryId,
+    onCategoryChange,
 }: {
 
     categories: Category[];
@@ -30,6 +32,8 @@ export default function RecordsList({
     onSelect?: (data: _Record) => void;
     onDelete?: (data: _Record) => void;
     onDeleteCategory?: (id: number) => void;
+
+    activeCategoryId?: number | null;
     onCategoryChange?: (categoryId: number | null) => void;
 }) {
     const [isLoading, setLoading] = useState(false);
@@ -40,6 +44,8 @@ export default function RecordsList({
 
     const [isKeyPassModalOpened, setKeyPassModalOpened] = useState(false);
     const [isReplaceKeyModalOpened, setReplaceKeyModalOpened] = useState<{ current: number; all: number; } | null>(null);
+
+    useEffect(() => setCurrentCategoryId(activeCategoryId || null), [activeCategoryId]);
 
     const [inputFilterText, setInputFilterText] = useState('');
     const [filterText, setFilterText] = useState('');
@@ -128,6 +134,10 @@ export default function RecordsList({
                         className="records-list-filter__input"
                         value={inputFilterText}
                         onChange={(e) => setInputFilterText(e.target.value)}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
                     />
                     <button className="records-list-filter__button" onClick={handleSearchButton}>
                         <span className="--mobile-only">⇒</span>
@@ -188,11 +198,18 @@ export default function RecordsList({
                                 <div className="records-list-item__left" onClick={() => changeCategory(category.id)}>
                                     <span className="records-list-item__name">{category.name}</span>
                                 </div>
-                                <div className="records-list-item__right">
+                                <div className="records-list-item__right --desktop-only">
                                     <button
                                         className="records-list-item__button"
                                         onClick={() => setDeleteCategoryModalOpen({ data: category })}
                                     >Удалить категорию</button>
+                                    {/* <span className="records-list-item__hint">КАТЕГОРИЯ</span> */}
+                                </div>
+                                <div className="records-list-item__right --mobile-only">
+                                    <button
+                                        className="records-list-item__button"
+                                        onClick={() => setDeleteCategoryModalOpen({ data: category })}
+                                    >⨉</button>
                                     {/* <span className="records-list-item__hint">КАТЕГОРИЯ</span> */}
                                 </div>
                             </div>

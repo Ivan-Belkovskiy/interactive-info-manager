@@ -16,6 +16,12 @@
     margin-top: 5px;
 }
 
+.record-management-form__block.actions-block {
+    width: 100%;
+    flex-direction: column;
+    gap: 15px;
+}
+
 
 .record-management-form__block.content-block {
     width: 100%;
@@ -36,14 +42,19 @@
 }
 
 @media (min-width: 1024px) {
-    
+
     .record-management-form__block {
         width: 50%;
         margin-top: 20px;
+        flex-direction: row !important;
     }
 
     .record-management-form__block.content-block {
         width: 70%;
+    }
+
+    .record-management-form__button {
+        width: auto;
     }
 
 }
@@ -75,7 +86,7 @@
 
 .record-management-form__button {
     flex-grow: 1;
-    /* width: 100%; */
+    width: 100%;
     color: var(--text-color);
     outline: 2px solid transparent;
     background-color: var(--primary-color);

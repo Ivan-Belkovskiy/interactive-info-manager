@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import "./SimpleModal.css";
 import AnimatedLoader from "../AnimatedLoader/AnimatedLoader";
 
-export type SimpleModalType = "info" | "confirm" | "prompt";
+export type SimpleModalType = "info" | "confirm" | "prompt" | "progress";
 
 export type SimpleModalProps = {
     type: "progress";

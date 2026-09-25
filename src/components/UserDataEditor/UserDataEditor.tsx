@@ -9,6 +9,7 @@ import { ClientCrypto } from '@/modules/ClientCrypto';
 import AnimatedLoader from '../UI/AnimatedLoader/AnimatedLoader';
 import { _Record, Category, User } from '@/types/data';
 import SimpleModal from '../UI/SimpleModal/SimpleModal';
+import ImportForm from '../ImportForm/ImportForm';
 
 export interface UserDataEditorProps {
 
@@ -39,7 +40,7 @@ export default function UserDataEditor({
     const [error, setError] = useState<string | null>(null);
 
 
-    const [openedModal, setModalOpened] = useState<"enter-key-pass" | "replace-key-pass" | null>(null);
+    const [openedModal, setModalOpened] = useState<"enter-key-pass" | "replace-key-pass" | "data-export" | "data-import" | null>(null);
 
 
 
@@ -58,6 +59,22 @@ export default function UserDataEditor({
             setCurrentKeyPassword(editingData.keyPassword || null);
         }
     }, [editingData]);
+
+    const handleDataExport = async () => {
+        const a = document.createElement('a');
+
+        a.href = `/api/export?encrypted=${keyPassword ? true : false}`;
+
+        a.click();
+
+        a.remove();
+
+        setModalOpened(null);
+        // const res = await fetch('/api/export/');
+        // const json = await res.json();
+
+        // if (json.)
+    }
 
     const handleSubmit = async (value: string) => {
 
@@ -137,63 +154,65 @@ export default function UserDataEditor({
     return (
         <div className="user-data-editor">
 
-            <div className="user-data-editor__block">
-                <span className="user-data-editor__label">Логин:</span>
-                <input
-                    className="user-data-editor__input"
-                    value={login}
-                    onChange={(e) => setTitle(e.target.value)}
-                />
-            </div>
+            <div className="user-data-section">
+                <h2 className="user-data-section__title">Основная информация</h2>
+                <div className="user-data-editor__block">
+                    <span className="user-data-editor__label">Логин:</span>
+                    <input
+                        className="user-data-editor__input"
+                        value={login}
+                        onChange={(e) => setTitle(e.target.value)}
+                    />
+                </div>
 
-            <div className="user-data-editor__block">
-                <span className="user-data-editor__label">Пароль для входа:</span>
-                <input
-                    className="user-data-editor__input"
-                    value="*******"
-                    disabled
-                // onChange={(e) => setTitle(e.target.value)}
-                />
-            </div>
+                <div className="user-data-editor__block">
+                    <span className="user-data-editor__label">Пароль для входа:</span>
+                    <input
+                        className="user-data-editor__input"
+                        value="*******"
+                        disabled
+                    // onChange={(e) => setTitle(e.target.value)}
+                    />
+                </div>
 
-            {(!currentKeyPassword || keyPassword) && <div className="user-data-editor__block">
-                <span className="user-data-editor__label">Ключ-пароль:</span>
-                {(currentKeyPassword) ? (
-                    <>
-                        {/* <input
+                {(!currentKeyPassword || keyPassword) && <div className="user-data-editor__block">
+                    <span className="user-data-editor__label">Ключ-пароль:</span>
+                    {(currentKeyPassword) ? (
+                        <>
+                            {/* <input
                             className="user-data-editor__input"
                             value={keyPassword || "*******"}
                             disabled
                         // onChange={(e) => setTitle(e.target.value)}
                         /> */}
-                        {(keyPassword) ? (
-                            <>
-                                <button className={`user-data-editor__button inline-button correct-key-password`}>✔ Ключ-пароль введен!</button>
-                                <button className={`user-data-editor__button inline-button`} onClick={() => {
+                            {(keyPassword) ? (
+                                <>
+                                    <button className={`user-data-editor__button inline-button correct-key-password`}>✔ Ключ-пароль введен!</button>
+                                    <button className={`user-data-editor__button inline-button`} onClick={() => {
+                                        setError(null);
+                                        setModalOpened('replace-key-pass');
+                                    }}>Заменить ключ-пароль</button>
+                                    {/* <input type="text" className="user-data-editor__input" /> */}
+                                </>
+                            ) : (
+                                <button className="user-data-editor__button inline-button" onClick={() => {
                                     setError(null);
-                                    setModalOpened('replace-key-pass');
-                                }}>Заменить ключ-пароль</button>
-                                {/* <input type="text" className="user-data-editor__input" /> */}
-                            </>
-                        ) : (
-                            <button className="user-data-editor__button inline-button" onClick={() => {
-                                setError(null);
-                                setModalOpened('enter-key-pass');
-                            }}>Ввести ключ-пароль</button>
-                        )
-                        }
-                    </>
-                ) : (
-                    <button className="user-data-editor__button inline-button" onClick={() => {
-                        setError(null);
-                        setModalOpened('enter-key-pass');
-                    }}>Создать ключ-пароль</button>
-                )}
-            </div>}
+                                    setModalOpened('enter-key-pass');
+                                }}>Ввести ключ-пароль</button>
+                            )
+                            }
+                        </>
+                    ) : (
+                        <button className="user-data-editor__button inline-button" onClick={() => {
+                            setError(null);
+                            setModalOpened('enter-key-pass');
+                        }}>Создать ключ-пароль</button>
+                    )}
+                </div>}
 
-            {error && <div className="user-data-editor__error">{error}</div>}
+                {error && <div className="user-data-editor__error">{error}</div>}
 
-            {/* <div className="user-data-editor__block">
+                {/* <div className="user-data-editor__block">
                 <span className="user-data-editor__label">Шифровать данные?</span>
                 <SimpleCheckbox
                     // disabled={editingData !== undefined}
@@ -206,29 +225,68 @@ export default function UserDataEditor({
                 />
             </div> */}
 
-            <div className="user-data-editor__block actions-block">
-                <button
-                    type="button"
-                    className={`user-data-editor__button ${isLoading ? 'loading' : ''}`}
-                    disabled={isLoading}
-                // onClick={handleSubmit}
-                >
-                    {isLoading ? (
-                        <>
-                            <AnimatedLoader />
-                            <span>Сохранение...</span>
-                        </>
-                    ) : "Сохранить настройки"}
-                </button>
+                <div className="user-data-editor__block actions-block">
+                    <button
+                        type="button"
+                        className={`user-data-editor__button ${isLoading ? 'loading' : ''}`}
+                        disabled={isLoading}
+                    // onClick={handleSubmit}
+                    >
+                        {isLoading ? (
+                            <>
+                                <AnimatedLoader />
+                                <span>Сохранение...</span>
+                            </>
+                        ) : "Сохранить настройки"}
+                    </button>
+                </div>
             </div>
 
-            {openedModal && <SimpleModal
+            <div className="user-data-section">
+                <h2 className="user-data-section__title">Управление данными</h2>
+                <div className="user-data-editor__block actions-block">
+                    <button
+                        type="button"
+                        className={`user-data-editor__button ${isLoading ? 'loading' : ''}`}
+                        onClick={() => setModalOpened('data-import')}
+                        disabled={isLoading}
+                    // onClick={handleSubmit}
+                    >
+                        Импорт данных из JSON
+                    </button>
+                    <button
+                        type="button"
+                        className={`user-data-editor__button ${isLoading ? 'loading' : ''}`}
+                        onClick={() => setModalOpened('data-export')}
+                        disabled={isLoading}
+                    // onClick={handleSubmit}
+                    >
+                        Экспорт данных в JSON
+                    </button>
+                </div>
+            </div>
+
+            {openedModal === 'data-import' ? (
+                <div className="import-modal">
+                    <ImportForm onClose={() => setModalOpened(null)} />
+                </div>
+            ) : openedModal === 'data-export' ? (
+                <SimpleModal
+                    type="confirm"
+                    title={"Экспортировать все записи в JSON?"}
+                    // message={""}
+                    onConfirm={handleDataExport}
+                    onCancel={() => setModalOpened(null)}
+                />
+            ) : (openedModal) && <SimpleModal
                 type="prompt"
                 title={(editingData?.keyPassword && openedModal === 'enter-key-pass') ? "Введите ключ-пароль этого пользователя:" : "Введите новый ключ-пароль:"}
                 message={(openedModal === 'replace-key-pass') ? 'Все имеющиеся зашифрованные записи будут перешифрованы новым ключом! Этот процесс может быть длительным!' : ''}
                 onConfirm={handleSubmit}
                 onCancel={() => setModalOpened(null)}
             />}
+
+            
         </div>
     )
 }

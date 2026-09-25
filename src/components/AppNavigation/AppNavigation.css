@@ -1,10 +1,10 @@
 .app-navigation {
     position: fixed;
     width: 100%;
-    background-color: var(--primary-color);
-    color: var(--text-color);
+    background-color: var(--text-color);
+    color: var(--primary-color);
     display: flex;
-    border-bottom: 2px solid var(--primary-color);
+    border-bottom: 4px solid var(--primary-color);
     z-index: 50;
 }
 
@@ -21,7 +21,7 @@
 }
 
 .app-navigation__center {
-    width: 60%;
+    width: 100%;
     height: 100%;
     display: flex;
     justify-content: center;
@@ -72,7 +72,16 @@
     top: 8px;
 } */
 
+.app-navigation-element {
+    padding: 15px 14px;
+    /* flex-grow: 1; */
+}
+
 @media (min-width: 1024px) {
+
+    .app-navigation-element {
+        flex-grow: none;
+    }
 
     .app-navigation__left {
         width: 20%;
@@ -97,26 +106,22 @@
 
 }
 
-.app-navigation-element {
-    padding: 15px 14px;
-}
-
 .app-navigation-element.app-logo {
     font-family: sans-serif;
     font-weight: 900;
 }
 
 .app-navigation-element.app-navigation__button {
-    background-color: var(--primary-color);
-    color: var(--text-color);
+    background-color: var(--text-color);
+    color: var(--primary-color);
     transition: all 0.3s ease 0s;
 }
 
 .app-navigation-element.app-navigation__button:hover,
 .app-navigation-element.app-navigation__button.current-url {
     cursor: pointer;
-    background-color: var(--text-color);
-    color: var(--primary-color);
+    background-color: var(--primary-color);
+    color: var(--text-color);
 }
 
 .app-navigation-element.app-navigation__button.current-url {

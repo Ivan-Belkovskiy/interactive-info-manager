@@ -10,6 +10,7 @@ import { ClientCrypto } from "@/modules/ClientCrypto";
 import { deleteRecord, createCategory, deleteCategory, replaceRecordsAndKeyPassword } from "@/app/actions";
 import UserDataEditor from "../UserDataEditor/UserDataEditor";
 import AppNavigation from "../AppNavigation/AppNavigation";
+import DataUploader from "../DataUploader/DataUploader";
 
 // export type MainAppProps = ({
 //     action: "user_settings";
@@ -32,14 +33,15 @@ export interface MainAppProps {
     setCurrentUrl: (data: string) => void;
 };
 
-export type MainAppAction = "default" | "record-creation" | "record-editor" | "category-creation" | "user-settings";
+export type MainAppAction = "default" | "record-creation" | "record-editor" | "category-creation" | "user-settings" | "data-upload";
 
 const ActionTranslations: Record<MainAppAction, string> = {
     default: "Interactive Info Manager",
     "record-creation": "Новая запись",
     "record-editor": "Редактирование записи",
     "category-creation": "Создание категории",
-    "user-settings": "Настройки аккаунта"
+    "user-settings": "Настройки аккаунта",
+    "data-upload": "Загрузить данные с устройства",
 }
 
 export default function MainApp(props: MainAppProps) {
@@ -59,7 +61,8 @@ export default function MainApp(props: MainAppProps) {
         }
 
         const contextMenuHandler = (e: MouseEvent) => {
-            e.preventDefault();
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (!isMobile) e.preventDefault();
         }
 
         if (typeof window !== 'undefined') {
@@ -323,6 +326,7 @@ export default function MainApp(props: MainAppProps) {
                         onDelete={handleRecordDelete}
                         onDeleteCategory={handleCategoryDelete}
                         validateInputText={validateKeyPassword}
+                        activeCategoryId={activeCategoryId}
                         onCategoryChange={(id) => setActiveCategoryId(id)}
                     />
                     <div className="main-app__buttons">
@@ -338,6 +342,12 @@ export default function MainApp(props: MainAppProps) {
                         // onClick={() => setCurrentAction('category-creation')}
                         >
                             Создать категорию
+                        </button>
+                        <button
+                            className="main-app__button"
+                            onClick={() => setCurrentAction('data-upload')}
+                        >
+                            Загрузить с устройства...
                         </button>
                         {/* <button
                         className="main-app__button main-app__button--secondary"
@@ -379,6 +389,15 @@ export default function MainApp(props: MainAppProps) {
                 }}
             />
         );
+
+        if (action === 'data-upload') return (
+            <DataUploader
+                categories={props.categories}
+                keyPassword={keyPassword}
+                activeCategoryId={activeCategoryId}
+                onClose={() => setCurrentAction('default')}
+            />
+        )
 
         // if (action === 'category-creation') return (
         // <SimpleModal
@@ -443,32 +462,32 @@ export default function MainApp(props: MainAppProps) {
                         type="info"
                         title={`Данные и ключ-пароль сохранены!!!`}
                         onConfirm={() => setReplaceKeyModalProps({ isOpened: false })}
-                        // disableButtons={}
+                    // disableButtons={}
                     />
                 ) :
-                (replaceKeyModalProps.type === 'progress') ? (
-                    <SimpleModal
-                        type="progress"
-                        title={`Шифрование данных новым ключом-паролем...`}
-                        current={replaceKeyModalProps.current || 0}
-                        all={replaceKeyModalProps.all || 99999}
-                        displayPercent
-                    />
-                ) : (
-                    <SimpleModal
-                        type="confirm"
-                        title={`Подтвердить изменение ключа-пароля`}
-                        message="После подтверждения ключ-пароль и перешифрованные записи будут обновлены в базе данных"
+                    (replaceKeyModalProps.type === 'progress') ? (
+                        <SimpleModal
+                            type="progress"
+                            title={`Шифрование данных новым ключом-паролем...`}
+                            current={replaceKeyModalProps.current || 0}
+                            all={replaceKeyModalProps.all || 99999}
+                            displayPercent
+                        />
+                    ) : (
+                        <SimpleModal
+                            type="confirm"
+                            title={`Подтвердить изменение ключа-пароля`}
+                            message="После подтверждения ключ-пароль и перешифрованные записи будут обновлены в базе данных"
 
-                        confirmBtnText="Подтвердить"
-                        cancelBtnText="Отмена"
+                            confirmBtnText="Подтвердить"
+                            cancelBtnText="Отмена"
 
-                        onConfirm={handleUpdateReplacedData}
-                        onCancel={() => setReplaceKeyModalProps({ isOpened: false })}
+                            onConfirm={handleUpdateReplacedData}
+                            onCancel={() => setReplaceKeyModalProps({ isOpened: false })}
 
-                        disableButtons={isLoading}
-                    />
-                )
+                            disableButtons={isLoading}
+                        />
+                    )
             )}
 
             {openedInfoModal === 'f12-key-info' && (
