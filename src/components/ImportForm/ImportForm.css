@@ -222,6 +222,7 @@
     /* flex-direction: column; */
     justify-content: end;
     align-items: end;
+    padding-bottom: 40px;
     /* background-color: red; */
 }
 
@@ -442,6 +443,7 @@
         flex-direction: row;
         justify-content: center;
         align-items: end;
+        padding-bottom: 0;
     }
 
     .import-form__title {
