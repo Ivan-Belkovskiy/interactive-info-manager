@@ -4,7 +4,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import './UserDataEditor.css';
 import SimpleCheckbox from '../UI/SimpleCheckbox/SimpleCheckbox';
 import TextEditor from '../UI/TextEditor/TextEditor';
-import { createRecord, updateRecord, updateUserData } from '@/app/actions';
+import { createRecord, updateBackupSettings, updateRecord, updateUserData } from '@/app/actions';
 import { ClientCrypto } from '@/modules/ClientCrypto';
 import AnimatedLoader from '../UI/AnimatedLoader/AnimatedLoader';
 import { _Record, Category, User } from '@/types/data';
@@ -42,6 +42,48 @@ export default function UserDataEditor({
 
     const [openedModal, setModalOpened] = useState<"enter-key-pass" | "replace-key-pass" | "data-export" | "data-import" | null>(null);
 
+    const [backupEnabled, setBackupEnabled] = useState(editingData?.backupEnabled ?? false);
+    const [backupEmails, setBackupEmails] = useState<string[]>(editingData?.backupEmails ?? []);
+    const [emailInput, setEmailInput] = useState("");
+    const [backupError, setBackupError] = useState<string | null>(null);
+    const [backupSaved, setBackupSaved] = useState(false);
+    const [backupLoading, setBackupLoading] = useState(false);
+
+    const addEmail = () => {
+        const email = emailInput.trim().toLowerCase();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setBackupError("Некорректный email");
+            return;
+        }
+        if (backupEmails.includes(email)) {
+            setBackupError("Этот адрес уже добавлен");
+            return;
+        }
+        setBackupEmails([...backupEmails, email]);
+        setEmailInput("");
+        setBackupError(null);
+    };
+
+    const removeEmail = (email: string) => {
+        setBackupEmails(backupEmails.filter((e) => e !== email));
+    };
+
+    const saveBackupSettings = async () => {
+        setBackupLoading(true);
+        setBackupError(null);
+        try {
+            const res = await updateBackupSettings({ backupEnabled, backupEmails });
+            if (!res.success) {
+                setBackupError(res.error ?? "Не удалось сохранить");
+                return;
+            }
+            setBackupSaved(true);
+            setTimeout(() => setBackupSaved(false), 2500);
+        } finally {
+            setBackupLoading(false);
+        }
+    };
+
 
 
     const decryptContent = async (content: string) => {
@@ -57,7 +99,12 @@ export default function UserDataEditor({
         if (editingData) {
             if (editingData.login) setTitle(editingData.login);
             setCurrentKeyPassword(editingData.keyPassword || null);
+
+            setBackupEnabled(editingData.backupEnabled ?? false);
+            setBackupEmails(editingData.backupEmails ?? []);
         }
+
+
     }, [editingData]);
 
     const handleDataExport = async () => {
@@ -266,6 +313,85 @@ export default function UserDataEditor({
                 </div>
             </div>
 
+            <div className="user-data-section">
+                <h2 className="user-data-section__title">Автоматический экспорт данных</h2>
+
+                <div
+                    className="user-data-editor__block checkbox-block"
+                    onClick={() => setBackupEnabled((v) => !v)}
+                >
+                    <SimpleCheckbox
+                        checked={backupEnabled}
+                        onSelect={setBackupEnabled}
+                    />
+                    <span>Отправлять резервную копию на email раз в 2 дня</span>
+                </div>
+
+                {backupEnabled && (
+                    <>
+                        {backupEmails.length > 0 && (
+                            <div className="backup-emails-list">
+                                {backupEmails.map((email) => (
+                                    <div key={email} className="backup-email-item">
+                                        <span>{email}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeEmail(email)}
+                                            className="backup-email-item__remove"
+                                            aria-label={`Удалить ${email}`}
+                                        >⨉</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="backup-email-add">
+                            <input
+                                type="email"
+                                className="user-data-editor__input"
+                                value={emailInput}
+                                onChange={(e) => {
+                                    setEmailInput(e.target.value);
+                                    if (backupError) setBackupError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        addEmail();
+                                    }
+                                }}
+                                placeholder="user@example.com"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="off"
+                                spellCheck={false}
+                            />
+                            <button
+                                type="button"
+                                className="user-data-editor__button"
+                                onClick={addEmail}
+                            >Добавить</button>
+                        </div>
+
+                        <p className="backup-hint">
+                            Зашифрованные записи остаются зашифрованными —
+                            для их расшифровки потребуется ваш ключ-пароль.
+                        </p>
+                    </>
+                )}
+
+                {backupError && <div className="user-data-editor__error">{backupError}</div>}
+
+                <button
+                    type="button"
+                    className={`user-data-editor__button ${backupSaved ? "saved" : ""}`}
+                    onClick={saveBackupSettings}
+                    disabled={backupLoading}
+                >
+                    {backupLoading ? "Сохранение..." : backupSaved ? "✅ Сохранено" : "Сохранить настройки авто-экспорта"}
+                </button>
+            </div>
+
             {openedModal === 'data-import' ? (
                 <div className="import-modal">
                     <ImportForm onClose={() => setModalOpened(null)} />
@@ -286,7 +412,7 @@ export default function UserDataEditor({
                 onCancel={() => setModalOpened(null)}
             />}
 
-            
+
         </div>
     )
 }

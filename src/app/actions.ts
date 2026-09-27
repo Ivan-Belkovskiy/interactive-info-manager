@@ -340,3 +340,44 @@ export async function replaceRecordsAndKeyPassword(records: _Record[], newKeyPas
         return { success: false, error };
     }
 }
+
+
+export async function updateBackupSettings(data: {
+    backupEnabled: boolean;
+    backupEmails: string[];
+}) {
+    try {
+        const cookieStore = await cookies();
+        const userLogin = cookieStore.get("user_session")?.value;
+        if (!userLogin) return { success: false, error: "Не авторизован" };
+
+        const user = await prisma.users.findUnique({
+            where: { login: userLogin },
+        });
+        if (!user) return { success: false, error: "Пользователь не найден" };
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const cleanEmails = Array.from(new Set(
+            data.backupEmails
+                .map((e) => e.trim().toLowerCase())
+                .filter((e) => emailRegex.test(e))
+        ));
+
+        if (data.backupEnabled && cleanEmails.length === 0) {
+            return { success: false, error: "Добавьте хотя бы один email" };
+        }
+
+        await prisma.users.update({
+            where: { id: user.id },
+            data: {
+                backupEnabled: data.backupEnabled,
+                backupEmails: cleanEmails,
+            },
+        });
+
+        return { success: true };
+    } catch (err) {
+        console.error("updateBackupSettings error:", err);
+        return { success: false, error: "Ошибка сохранения" };
+    }
+}

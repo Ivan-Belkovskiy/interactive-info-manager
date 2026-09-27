@@ -47,6 +47,16 @@
     }
 }
 
+@media (max-width: 1023px) {
+    .backup-email-add {
+        flex-direction: column;
+    }
+
+    .backup-email-add .user-data-editor__button {
+        width: 100%;
+    }
+}
+
 @media (min-width: 1024px) {
 
     .user-data-editor__block {
@@ -192,4 +202,134 @@
     justify-content: center;
     align-items: center;
     z-index: 100;
+}
+
+
+
+.user-data-editor__block.checkbox-block {
+    justify-content: flex-start;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 8px 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.user-data-editor__block.checkbox-block:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.user-data-editor__block.checkbox-block > span {
+    color: var(--primary-color);
+    line-height: 1.4;
+    user-select: none;
+}
+
+.backup-emails-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 15px;
+    padding: 10px;
+    border: 2px dashed var(--primary-color);
+    border-radius: 8px;
+}
+
+.backup-email-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border: 2px solid var(--primary-color);
+    border-radius: 5px;
+    gap: 10px;
+    transition: border-color 0.2s ease;
+}
+
+.backup-email-item:hover {
+    border-color: var(--secondary-color);
+}
+
+.backup-email-item > span {
+    flex: 1;
+    color: var(--primary-color);
+    font-family: monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.backup-email-item__remove {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    background-color: transparent;
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.backup-email-item__remove:hover {
+    color: var(--background--red);
+    border-color: var(--background--red);
+    background-color: var(--background--red-light);
+    transform: rotate(90deg);
+}
+
+.backup-email-add {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.backup-email-add .user-data-editor__input {
+    flex: 1;
+    min-width: 0;
+    margin-left: 0;
+}
+
+.backup-email-add .user-data-editor__button {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 9px 20px;
+    margin-left: 0;
+}
+
+.backup-hint {
+    width: 100%;
+    color: var(--primary-color);
+    font-size: 13px;
+    font-style: italic;
+    opacity: 0.75;
+    line-height: 1.4;
+    margin-top: 12px;
+    padding: 0 5px;
+}
+
+.user-data-section > .user-data-editor__button {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 20px;
+}
+
+.user-data-editor__button.saved {
+    background-color: var(--background--green);
+}
+
+.user-data-editor__button.saved:hover {
+    background-color: var(--text-color);
+    color: var(--background--green);
+    outline-color: var(--background--green);
 }

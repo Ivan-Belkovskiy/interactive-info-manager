@@ -12,6 +12,11 @@ model users {
   login         String       @unique @db.VarChar(100)
   password      String       @db.VarChar(200)
   keyPassword   String?      @db.VarChar(450)
+  
+  backupEmails      String[]   @default([])
+  backupEnabled     Boolean    @default(false)
+  backupLastSentAt  DateTime?
+
   records    records[]
   categories categories[]
 }
