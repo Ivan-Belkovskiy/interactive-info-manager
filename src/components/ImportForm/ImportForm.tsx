@@ -20,7 +20,7 @@ interface ParsedFile {
 
 type ImportMode = "insert" | "updateById" | "replaceAll";
 
-export default function ImportForm({ onClose }: { onClose: () => void }) {
+export default function ImportForm({ keyPassword, onClose }: { keyPassword?: string; onClose: () => void }) {
     const fileRef = useRef<HTMLInputElement>(null);
 
     const [parsed, setParsed] = useState<ParsedFile | null>(null);
@@ -60,8 +60,8 @@ export default function ImportForm({ onClose }: { onClose: () => void }) {
             const rawRecords = Array.isArray(json)
                 ? json
                 : Array.isArray(json?.records)
-                  ? json.records
-                  : null;
+                    ? json.records
+                    : null;
 
             if (!rawRecords) {
                 setError("Файл не содержит корректного массива записей");
@@ -172,12 +172,12 @@ export default function ImportForm({ onClose }: { onClose: () => void }) {
                     <>
                         <div className="import-form__preview">
                             Записей в файле: <b>{parsed.records.length}</b>
-                            {encryptedCount > 0 && (
+                            {(encryptedCount > 0 && keyPassword) && (
                                 <> · зашифровано: <b>{encryptedCount}</b></>
                             )}
                             {" "}· к импорту: <b>{includedCount}</b>
 
-                            {encryptedCount > 0 && (
+                            {(encryptedCount > 0 && keyPassword) && (
                                 <div className="import-form__hint">
                                     Зашифрованные записи будут импортированы как есть —
                                     расшифровать их можно будет при открытии, введя пароль.
@@ -191,10 +191,9 @@ export default function ImportForm({ onClose }: { onClose: () => void }) {
                                     <span className="import-form__label">Название</span>
                                 </div>
                                 <div className="import-form-item__right">
-                                    <span className="import-form__label --desktop-only">
+                                    {(keyPassword) && <span className="import-form__label --desktop-only">
                                         Зашифрована?
-                                        {/* Шифр. */}
-                                    </span>
+                                    </span>}
                                     <span className="import-form__label">Исключить</span>
                                 </div>
                             </div>
@@ -202,9 +201,8 @@ export default function ImportForm({ onClose }: { onClose: () => void }) {
                             {parsed.records.map((r, i) => (
                                 <div
                                     key={i}
-                                    className={`import-form-item ${
-                                        excluded.has(i) ? "excluded" : ""
-                                    }`}
+                                    className={`import-form-item ${excluded.has(i) ? "excluded" : ""
+                                        }`}
                                 >
                                     <div className="import-form-item__left">
                                         <span
@@ -220,9 +218,9 @@ export default function ImportForm({ onClose }: { onClose: () => void }) {
                                         )}
                                     </div>
                                     <div className="import-form-item__right">
-                                        <span className="import-form-item__encrypted --desktop-only">
+                                        {(keyPassword) && <span className="import-form-item__encrypted --desktop-only">
                                             {r.isEncrypted ? "✔" : "—"}
-                                        </span>
+                                        </span>}
                                         <SimpleCheckbox
                                             checked={excluded.has(i)}
                                             onSelect={() => toggleExclude(i)}

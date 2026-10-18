@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import './page.css';
 import { loginUser } from '../actions';
+import AnimatedLoader from '@/components/UI/AnimatedLoader/AnimatedLoader';
 
 export default function LoginPage() {
     const [login, setLogin] = useState('');
@@ -54,7 +55,12 @@ export default function LoginPage() {
                     className={`login-form__button ${isLoading ? 'loading' : ''}`} onClick={onSubmit}
                     type="button"
                     disabled={isLoading}
-                >Войти</button>
+                >
+                    {isLoading && (
+                        <AnimatedLoader />
+                    )}
+                    <span>Войти</span>
+                </button>
                 {(submitError) && <div className="login-form__error">{submitError}</div>}
             </form>
         </div>

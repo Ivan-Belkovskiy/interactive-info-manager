@@ -373,10 +373,10 @@ export default function UserDataEditor({
                             >Добавить</button>
                         </div>
 
-                        <p className="backup-hint">
+                        {(keyPassword) && <p className="backup-hint">
                             Зашифрованные записи остаются зашифрованными —
                             для их расшифровки потребуется ваш ключ-пароль.
-                        </p>
+                        </p>}
                     </>
                 )}
 
@@ -394,7 +394,7 @@ export default function UserDataEditor({
 
             {openedModal === 'data-import' ? (
                 <div className="import-modal">
-                    <ImportForm onClose={() => setModalOpened(null)} />
+                    <ImportForm keyPassword={keyPassword || undefined} onClose={() => setModalOpened(null)} />
                 </div>
             ) : openedModal === 'data-export' ? (
                 <SimpleModal

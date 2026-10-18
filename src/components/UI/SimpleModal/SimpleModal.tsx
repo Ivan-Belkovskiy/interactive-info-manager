@@ -6,6 +6,11 @@ import AnimatedLoader from "../AnimatedLoader/AnimatedLoader";
 
 export type SimpleModalType = "info" | "confirm" | "prompt" | "progress";
 
+export interface SimpleModalButton {
+    textLabel: string;
+    onClick?: () => any;
+}
+
 export type SimpleModalProps = {
     type: "progress";
     title?: string;
@@ -16,7 +21,7 @@ export type SimpleModalProps = {
 
     displayPercent?: boolean;
 
-} | {
+} | (({
     type: "info";
     title?: string;
     message?: string;
@@ -53,11 +58,21 @@ export type SimpleModalProps = {
 
     onConfirm?: (value: string) => void;
     onCancel?: () => void;
-};
+}) & {
+    buttons?: SimpleModalButton[];
+});
 
 export default function SimpleModal(props: SimpleModalProps) {
 
     const [inputValue, setInputValue] = useState('');
+
+    const renderButtons = () => {
+        if (props.type === 'progress') return;
+
+        return props.buttons?.map((btn, idx) => (
+            <button className="simple-modal__button" onClick={() => btn.onClick?.()}>{btn.textLabel}</button>
+        ));
+    }
 
     return (
         <div className="simple-modal__overlay">
@@ -90,6 +105,7 @@ export default function SimpleModal(props: SimpleModalProps) {
                             </div>
                             <div className="simple-modal__buttons">
                                 <button className="simple-modal__button" onClick={() => props.onConfirm?.()}>{props.confirmBtnText || "ОК"}</button>
+                                {renderButtons()}
                             </div>
                         </>
                     ) : (props.type === "confirm") ? (
@@ -100,6 +116,7 @@ export default function SimpleModal(props: SimpleModalProps) {
                             <div className="simple-modal__buttons">
                                 <button className="simple-modal__button" onClick={() => props.onConfirm?.()}>{props.confirmBtnText || "ОК"}</button>
                                 <button className="simple-modal__button" onClick={() => props.onCancel?.()}>{props.cancelBtnText || "Отмена"}</button>
+                                {renderButtons()}
                             </div>
                         </>
                     ) : (
@@ -118,6 +135,7 @@ export default function SimpleModal(props: SimpleModalProps) {
                             <div className="simple-modal__buttons">
                                 <button disabled={props.disableButtons} className="simple-modal__button" onClick={() => props.onConfirm?.(inputValue)}>{props.confirmBtnText || "ОК"}</button>
                                 <button disabled={props.disableButtons} className="simple-modal__button" onClick={() => props.onCancel?.()}>{props.cancelBtnText || "Отмена"}</button>
+                                {renderButtons()}
                             </div>
                         </>
                     )}

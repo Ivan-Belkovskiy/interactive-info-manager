@@ -32,7 +32,7 @@
 }
 
 @media (min-width: 1024px) {
-    
+
     .main-app__buttons {
         gap: 20px;
         flex-direction: row;
@@ -52,9 +52,20 @@
     padding: 7px;
     cursor: pointer;
     color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
     margin-top: 20px;
     border-radius: 5px;
     transition: all 0.3s ease 0s;
+
+    &:disabled {
+        opacity: 0.8;
+        background-color: var(--text-color);
+        color: var(--primary-color);
+        cursor: not-allowed;
+    }
 }
 
 .main-app__button:hover {

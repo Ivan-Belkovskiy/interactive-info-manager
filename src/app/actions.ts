@@ -212,6 +212,62 @@ export async function deleteRecord(id: number) {
     }
 }
 
+export async function moveRecord(recordId: number, categoryId: number | null) {
+
+    const cookieStore = await cookies();
+    const userLogin = cookieStore.get("user_session")?.value;
+
+    if (!userLogin) return { success: false, error: "Не авторизован" };
+
+    try {
+        const user = await prisma.users.findUnique({ where: { login: userLogin } });
+        if (!user) return { success: false, error: "Пользователь не найден" };
+
+        if (!recordId || !categoryId) return { success: false, error: "ID записи или категории не предоставлены" };
+
+        const result = await prisma.$transaction(async (tx) => {
+            const record = await tx.records.findUnique({
+                where: {
+                    id: recordId,
+                    userId: user.id,
+                }
+            });
+
+            if (!record) return { success: false, error: "Запись не найдена или принадлежит другому пользователю" };
+
+            if (categoryId !== null) {
+                const targetCategory = await tx.categories.findUnique({
+                    where: {
+                        id: categoryId,
+                        userId: user.id,
+                    }
+                });
+
+                if (!targetCategory) return { success: false, error: "Категория не найдена или принадлежит другому пользователю" };
+            }
+
+
+
+            return await tx.records.update({
+                where: {
+                    id: record.id,
+                },
+                data: {
+                    categoryId,
+                }
+            });
+
+        });
+
+        revalidatePath("/");
+
+        return { success: true, data: result };
+
+    } catch (error: any) {
+        return { success: false, error: error?.message || "Ошибка перемещения записи" };
+    }
+}
+
 export async function createCategory(name: string, parentId: number | null = null) {
     const cookieStore = await cookies();
     const userLogin = cookieStore.get("user_session")?.value;
@@ -242,7 +298,10 @@ export async function createCategory(name: string, parentId: number | null = nul
 }
 
 
-export async function deleteCategory(id: number) {
+export async function deleteCategory(
+    id: number,
+    deleteWithRecords: boolean = false
+) {
     const cookieStore = await cookies();
     const userLogin = cookieStore.get("user_session")?.value;
 
@@ -252,46 +311,199 @@ export async function deleteCategory(id: number) {
         const user = await prisma.users.findUnique({ where: { login: userLogin } });
         if (!user) return { success: false, error: "Пользователь не найден" };
 
-        const deletedCategory = await prisma.$transaction(async (tx) => {
-            const categoryToDelete = await tx.categories.findUnique({
-                where: { id },
-                select: { id: true, parentId: true, userId: true }
-            });
+        const result = await prisma.$transaction(
+            async (tx) => {
+                const categoryToDelete = await tx.categories.findUnique({
+                    where: { id },
+                    select: { id: true, parentId: true, userId: true },
+                });
 
-            if (!categoryToDelete) {
-                throw new Error("Категория не найдена");
+                if (!categoryToDelete) throw new Error("Категория не найдена");
+                if (categoryToDelete.userId !== user.id) {
+                    throw new Error("Нет доступа к этой категории");
+                }
+
+                const targetParentId = categoryToDelete.parentId;
+
+                if (!deleteWithRecords) {
+                    await tx.records.updateMany({
+                        where: { categoryId: id },
+                        data: { categoryId: targetParentId },
+                    });
+
+                    await tx.categories.updateMany({
+                        where: { parentId: id },
+                        data: { parentId: targetParentId },
+                    });
+
+                    const deleted = await tx.categories.delete({ where: { id } });
+
+                    return {
+                        deletedCategoryId: deleted.id,
+                        deletedRecords: 0,
+                        deletedCategories: 1,
+                        mode: "moveUp" as const,
+                    };
+                }
+
+                const subtreeIds: number[] = [id];
+                let currentLevel: number[] = [id];
+
+                while (currentLevel.length > 0) {
+                    const children = await tx.categories.findMany({
+                        where: {
+                            parentId: { in: currentLevel },
+                            userId: user.id,
+                        },
+                        select: { id: true },
+                    });
+                    const childIds = children.map((c) => c.id);
+                    subtreeIds.push(...childIds);
+                    currentLevel = childIds;
+                }
+
+                const recordsResult = await tx.records.deleteMany({
+                    where: { categoryId: { in: subtreeIds } },
+                });
+
+                await tx.categories.delete({ where: { id } });
+
+                return {
+                    deletedCategoryId: id,
+                    deletedRecords: recordsResult.count,
+                    deletedCategories: subtreeIds.length,
+                    mode: "withRecords" as const,
+                };
+            },
+            {
+                maxWait: 10_000,
+                timeout: 30_000,
             }
+        );
 
-            if (categoryToDelete.userId !== user.id) {
-                throw new Error("Нет доступа к этой категории");
-            }
+        revalidatePath("/");
 
-            const targetParentId = categoryToDelete.parentId;
-
-            await tx.records.updateMany({
-                where: { categoryId: id },
-                data: { categoryId: targetParentId }
-            });
-
-            await tx.categories.updateMany({
-                where: { parentId: id },
-                data: { parentId: targetParentId }
-            });
-
-            return await tx.categories.delete({
-                where: { id }
-            });
-        });
-
-        revalidatePath('/');
-
-        return { success: true, data: deletedCategory };
+        return { success: true, data: result };
     } catch (error: any) {
         console.error("Ошибка при удалении категории:", error);
         return {
             success: false,
-            error: error.message || "Не удалось удалить категорию"
+            error: error.message || "Не удалось удалить категорию",
         };
+    }
+}
+
+export async function moveCategory(currentId: number, targetId: number | null) {
+    const cookieStore = await cookies();
+    const userLogin = cookieStore.get("user_session")?.value;
+    if (!userLogin) return { success: false, error: "Не авторизован" };
+
+    try {
+        const user = await prisma.users.findUnique({ where: { login: userLogin } });
+        if (!user) return { success: false, error: "Пользователь не найден" };
+
+        if (currentId === targetId) {
+            return { success: false, error: "Нельзя переместить категорию в саму себя" };
+        }
+
+        const result = await prisma.$transaction(
+            async (tx) => {
+                const current = await tx.categories.findUnique({
+                    where: { id: currentId },
+                    select: { id: true, parentId: true, userId: true },
+                });
+                if (!current || current.userId !== user.id) {
+                    throw new Error("Текущая категория не найдена");
+                }
+
+                if (targetId !== null) {
+                    const target = await tx.categories.findUnique({
+                        where: { id: targetId },
+                        select: { id: true, userId: true },
+                    });
+                    if (!target || target.userId !== user.id) {
+                        throw new Error("Целевая категория не найдена");
+                    }
+
+                    let cursor: number | null = targetId;
+                    while (cursor !== null) {
+                        if (cursor === currentId) {
+                            throw new Error(
+                                "Нельзя переместить категорию внутрь текущей"
+                            );
+                        }
+                        const parent: { parentId: number | null } | null =
+                            await tx.categories.findUnique({
+                                where: { id: cursor },
+                                select: { parentId: true },
+                            });
+                        cursor = parent?.parentId ?? null;
+                    }
+                }
+
+                return tx.categories.update({
+                    where: { id: currentId },
+                    data: { parentId: targetId },
+                });
+            },
+            { maxWait: 10_000, timeout: 30_000 }
+        );
+
+        revalidatePath("/");
+        return { success: true, data: result };
+    } catch (error: any) {
+        console.error("Ошибка при перемещении категории:", error);
+        return {
+            success: false,
+            error: error.message || "Не удалось переместить категорию",
+        };
+    }
+}
+
+
+export async function renameCategory(categoryId: number, newName: string) {
+
+    const cookieStore = await cookies();
+    const userLogin = cookieStore.get('user_session')?.value;
+
+    if (!userLogin) return { success: false, error: "Не авторизован" };
+
+    try {
+
+        const user = await prisma.users.findUnique({
+            where: { login: userLogin }
+        });
+
+        if (!user) return { success: false, error: "Пользователь не найден" };
+
+        if (!categoryId || !newName) return { success: false, error: "ID или имя не предоставлены" };
+
+        const res = await prisma.$transaction(async (tx) => {
+            const category = await tx.categories.findUnique({
+                where: {
+                    id: categoryId,
+                    userId: user.id,
+                }
+            });
+
+            if (!category) return { success: false, error: "Категория не найдена или принадлежит другому пользователю" };
+
+            return await tx.categories.update({
+                where: {
+                    id: category.id,
+                },
+                data: {
+                    name: newName,
+                }
+            })
+        });
+
+        revalidatePath("/");
+
+        return { success: true, data: res };
+
+    } catch (error) {
+
     }
 }
 
@@ -379,5 +591,108 @@ export async function updateBackupSettings(data: {
     } catch (err) {
         console.error("updateBackupSettings error:", err);
         return { success: false, error: "Ошибка сохранения" };
+    }
+}
+
+
+export interface FolderUploadItem {
+    title: string;
+    content: string;
+    isEncrypted: boolean;
+    virtualPath: string;
+}
+
+export async function uploadRecordsWithFolders(
+    items: FolderUploadItem[],
+    rootCategoryId: number | null
+) {
+    const cookieStore = await cookies();
+    const userLogin = cookieStore.get("user_session")?.value;
+    if (!userLogin) return { success: false, error: "Не авторизован" };
+
+    try {
+        const user = await prisma.users.findUnique({ where: { login: userLogin } });
+        if (!user) return { success: false, error: "Пользователь не найден" };
+
+        let validRoot: number | null = null;
+        if (rootCategoryId !== null) {
+            const rootCategory = await prisma.categories.findFirst({
+                where: { id: rootCategoryId, userId: user.id },
+                select: { id: true },
+            });
+            if (rootCategory) validRoot = rootCategory.id;
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
+            const allCategories = await tx.categories.findMany({
+                where: { userId: user.id },
+                select: { id: true, name: true, parentId: true },
+            });
+
+            const categoryKey = (parentId: number | null, name: string) =>
+                `${parentId ?? "r"}:${name}`;
+
+            const categoriesMap = new Map<string, number>();
+            for (const c of allCategories) categoriesMap.set(categoryKey(c.parentId, c.name), c.id);
+
+            const ensurePath = async (virtualPath: string): Promise<number | null> => {
+                const segments = virtualPath.split("/").filter(Boolean);
+                let currentParent: number | null = validRoot;
+
+                for (const seg of segments) {
+                    const k = categoryKey(currentParent, seg);
+                    let cId = categoriesMap.get(k);
+                    if (cId === undefined) {
+                        const created = await tx.categories.create({
+                            data: {
+                                userId: user.id,
+                                parentId: currentParent,
+                                name: seg,
+                            },
+                        });
+                        cId = created.id;
+                        categoriesMap.set(k, cId);
+                    }
+                    currentParent = cId;
+                }
+                return currentParent;
+            };
+
+            const byCategory = new Map<number | null, FolderUploadItem[]>();
+
+            for (const item of items) {
+                const categoryId = item.virtualPath
+                    ? await ensurePath(item.virtualPath)
+                    : validRoot;
+                const contents = byCategory.get(categoryId) ?? [];
+                contents.push(item);
+                byCategory.set(categoryId, contents);
+            }
+
+            let imported = 0;
+            for (const [categoryId, contents] of byCategory) {
+                const res = await tx.records.createMany({
+                    data: contents.map((it) => ({
+                        userId: user.id,
+                        categoryId: categoryId,
+                        title: it.title,
+                        content: it.content,
+                        isEncrypted: it.isEncrypted,
+                    })),
+                });
+                imported += res.count;
+            }
+
+            return { imported, categoriesCreated: categoriesMap.size - allCategories.length };
+        }, {
+            maxWait: 10000,
+            timeout: 30000,
+        });
+
+        revalidatePath("/");
+        return { success: true, imported: result.imported };
+    } catch (error) {
+        console.error("uploadRecordsWithFolders error:", error);
+        return { success: false, error: "Не удалось сохранить данные" };
     }
 }

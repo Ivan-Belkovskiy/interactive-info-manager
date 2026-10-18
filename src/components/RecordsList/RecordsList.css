@@ -70,7 +70,8 @@
     height: 100%;
 }
 
-.records-list-item__left:hover {
+.records-list-item:not(.to-move) .records-list-item__left:hover,
+.records-list-item:not(.to-move).selected .records-list-item__left {
     cursor: pointer;
     background-color: var(--primary-color);
     border-color: var(--primary-color);
@@ -231,7 +232,7 @@
     cursor: pointer;
 }
 
-.records-list-item.type-folder:hover {
+.records-list-item.type-folder:not(.to-move):hover {
     background-color: var(--folder-bg-hover, rgba(255, 193, 7, 0.1));
 }
 
@@ -246,6 +247,14 @@
     color: #888;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.records-list-item.to-move {
+    opacity: 0.8;
+    cursor: not-allowed;
+    background-color: #ffdf7f;
+    /* color: #fff; */
+    outline: 2px solid var(--secondary-color);
 }
 
 

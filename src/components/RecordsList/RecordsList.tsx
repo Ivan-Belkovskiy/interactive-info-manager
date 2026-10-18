@@ -1,19 +1,35 @@
 'use client';
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, MouseEvent, RefObject } from "react";
 import "./RecordsList.css";
-import { Category, _Record } from '@/types/data';
+import { Category, _MouseEvent, _Record } from '@/types/data';
 import { formatDate } from '@/utils/date';
 import SimpleModal from "../UI/SimpleModal/SimpleModal";
 import TextSelection from "../UI/TextSelection/TextSelection";
+import ContextMenu, { ContextMenuItem } from "../UI/ContextMenu/ContextMenu";
+import { renameCategory } from "@/app/actions";
 
 type ViewMode = "categories" | "records";
+
+type ContextMenuData = {
+    type: "category";
+    data: Category;
+} | {
+    type: "record";
+    data: _Record;
+};
+
+type RenameModalState = { type: "category", data: Category } | { type: "record", data: _Record } | null;
 
 export default function RecordsList({
     categories,
     records,
     validateInputText,
     showEncrypted,
+    categoryToMove,
+    recordToMove,
+    setCategoryToMove,
+    setRecordToMove,
     onSelect,
     onDelete,
     onDeleteCategory,
@@ -29,9 +45,14 @@ export default function RecordsList({
 
     showEncrypted?: boolean;
 
+    categoryToMove?: Category | null;
+    recordToMove?: _Record | null;
+    setCategoryToMove?: (data: Category) => any;
+    setRecordToMove?: (data: _Record) => any;
+
     onSelect?: (data: _Record) => void;
     onDelete?: (data: _Record) => void;
-    onDeleteCategory?: (id: number) => void;
+    onDeleteCategory?: (id: number, deleteWithCategories?: boolean) => Promise<void>;
 
     activeCategoryId?: number | null;
     onCategoryChange?: (categoryId: number | null) => void;
@@ -40,10 +61,17 @@ export default function RecordsList({
     const [viewMode, setViewMode] = useState<ViewMode>("categories");
     const [currentCategoryId, setCurrentCategoryId] = useState<number | null>(null);
     const [isDeleteModalOpen, setDeleteModalOpen] = useState<{ data: _Record; } | null>(null);
-    const [isDeleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState<{ data: Category } | null>(null);
+    const [isDeleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState<{ action?: "confirmCategoryDelete" | "confirmRecordsDelete", data: Category, deleteWithRecords?: boolean } | null>(null);
 
     const [isKeyPassModalOpened, setKeyPassModalOpened] = useState(false);
-    const [isReplaceKeyModalOpened, setReplaceKeyModalOpened] = useState<{ current: number; all: number; } | null>(null);
+
+
+    const [renameModal, setRenameModal] = useState<RenameModalState>(null);
+
+    const contentRef = useRef<HTMLDivElement | null>(null);
+    const activateContextMenuRef = useRef<((e: MouseEvent | _MouseEvent) => void) | null>(null);
+    const closeContextMenuRef = useRef<(() => void) | null>(null);
+
 
     useEffect(() => setCurrentCategoryId(activeCategoryId || null), [activeCategoryId]);
 
@@ -69,6 +97,22 @@ export default function RecordsList({
         setCurrentCategoryId(id);
         onCategoryChange?.(id);
     };
+
+    const handleCategoryRename = async (data: Category, newName: string) => {
+        if (!data || !newName) return;
+
+        setLoading(true);
+
+        const res = await renameCategory(data.id, newName);
+
+        if (res?.success) {
+
+        }
+
+        setLoading(false);
+
+        setRenameModal(null);
+    }
 
     const currentSubCategories = useMemo(() => {
         return categories.filter(cat => cat.parentId === currentCategoryId);
@@ -108,8 +152,36 @@ export default function RecordsList({
 
     }
 
+    const [contextMenuData, setContextMenuData] = useState<ContextMenuData | null>(null);
+
+    const contextMenuItems: ContextMenuItem[] = (contextMenuData?.type === 'category') ? [
+        {
+            type: "button",
+            label: "Переименовать категорию",
+
+            onClick: () => setRenameModal({ type: "category", data: contextMenuData.data }),
+
+        },
+        {
+            type: "button",
+            label: "Переместить ...",
+
+            onClick: () => setCategoryToMove?.(contextMenuData.data)
+        }
+    ] : (contextMenuData?.type === 'record') ? [
+        {
+            type: "button",
+            label: "Переместить ...",
+
+            onClick: () => setRecordToMove?.(contextMenuData.data)
+        }
+    ] : [];
+
     return (
-        <div className="records-list">
+        <div className="records-list" ref={contentRef} onClick={() => {
+            setContextMenuData(null);
+            closeContextMenuRef.current?.();
+        }}>
             <h2 className="records-list__title">Мои записи</h2>
 
             <div className="records-list__filters">
@@ -191,27 +263,45 @@ export default function RecordsList({
 
                         {currentSubCategories.map(category => (
                             <div
-                                className="records-list-item type-folder"
+                                className={`records-list-item type-folder ${(category.id === categoryToMove?.id) ? 'to-move' : ''} ${(contextMenuData?.type === 'category' && (category.id === contextMenuData.data.id)) ? 'selected' : ''}`}
                                 key={category.id}
+                                onContextMenu={(e) => {
+                                    if (!categoryToMove) {
+                                        setContextMenuData({
+                                            type: 'category',
+                                            data: category
+                                        });
+                                        activateContextMenuRef.current?.(e);
+                                    }
+                                    e.preventDefault();
+                                }}
                             // onClick={() => changeCategory(category.id)}
                             >
-                                <div className="records-list-item__left" onClick={() => changeCategory(category.id)}>
+                                <div className="records-list-item__left" onClick={() => {
+                                    if (categoryToMove?.id !== category.id) changeCategory(category.id)
+                                }}>
                                     <span className="records-list-item__name">{category.name}</span>
                                 </div>
-                                <div className="records-list-item__right --desktop-only">
-                                    <button
-                                        className="records-list-item__button"
-                                        onClick={() => setDeleteCategoryModalOpen({ data: category })}
-                                    >Удалить категорию</button>
-                                    {/* <span className="records-list-item__hint">КАТЕГОРИЯ</span> */}
-                                </div>
-                                <div className="records-list-item__right --mobile-only">
-                                    <button
-                                        className="records-list-item__button"
-                                        onClick={() => setDeleteCategoryModalOpen({ data: category })}
-                                    >⨉</button>
-                                    {/* <span className="records-list-item__hint">КАТЕГОРИЯ</span> */}
-                                </div>
+                                {(categoryToMove) ? (
+                                    <div className="records-list-item__right"></div>
+                                ) : (
+                                    <>
+                                        <div className="records-list-item__right --desktop-only">
+                                            <button
+                                                className="records-list-item__button"
+                                                onClick={() => setDeleteCategoryModalOpen({ action: "confirmCategoryDelete", data: category })}
+                                            >Удалить категорию</button>
+                                            {/* <span className="records-list-item__hint">КАТЕГОРИЯ</span> */}
+                                        </div>
+                                        <div className="records-list-item__right --mobile-only">
+                                            <button
+                                                className="records-list-item__button"
+                                                onClick={() => setDeleteCategoryModalOpen({ action: "confirmCategoryDelete", data: category })}
+                                            >⨉</button>
+                                            {/* <span className="records-list-item__hint">КАТЕГОРИЯ</span> */}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))}
 
@@ -223,6 +313,12 @@ export default function RecordsList({
                                 showEncrypted={showEncrypted}
                                 onSelect={onSelect}
                                 onDelete={(data) => setDeleteModalOpen({ data })}
+                                categoryToMove={categoryToMove}
+                                recordToMove={recordToMove}
+
+                                isSelected={contextMenuData?.type === 'record' && (r.id === contextMenuData.data.id)}
+                                setContextMenuData={setContextMenuData}
+                                activateContextMenuRef={activateContextMenuRef}
                             />
                         ))}
 
@@ -253,6 +349,12 @@ export default function RecordsList({
                                 filterText={filterText}
                                 onSelect={onSelect}
                                 onDelete={(data) => setDeleteModalOpen({ data })}
+
+                                isSelected={contextMenuData?.type === 'record' && (r.id === contextMenuData.data.id)}
+                                categoryToMove={categoryToMove}
+                                recordToMove={recordToMove}
+                                setContextMenuData={setContextMenuData}
+                                activateContextMenuRef={activateContextMenuRef}
                             />
                         ))
                     ) : (
@@ -296,21 +398,75 @@ export default function RecordsList({
                 />
             )}
 
+            {renameModal && (
+                renameModal.type === 'category' && (
+                    <SimpleModal
+                        type="prompt"
+                        title={`Переименовать категорию "${renameModal.data.name}"?`}
+                        message="Введите новое имя категории:"
+                        confirmBtnText="Переименовать"
+                        cancelBtnText="Отмена"
+                        disableButtons={isLoading}
+                        onConfirm={(val) => handleCategoryRename(renameModal.data, val)}
+                        onCancel={() => setRenameModal(null)}
+                    />
+                )
+            )}
+
+            <ContextMenu
+                activateRef={activateContextMenuRef}
+                closeRef={closeContextMenuRef}
+                // isOpened={isContextMenuOpen}
+                containerRef={contentRef}
+                items={contextMenuItems}
+            // onClose={() => setContextMenuOpen(false)}
+            // styles={{
+            //     top: `${contextMenuPosition?.y || 0}px`,
+            //     left: `${contextMenuPosition?.x || 0}px`,
+            // }}
+            />
+
             {isDeleteCategoryModalOpen && (
-                <SimpleModal
-                    type="confirm"
-                    title={`Удалить категорию "${isDeleteCategoryModalOpen.data.name}"?`}
-                    message="Содержимое категории будет перенесено на уровень выше"
-                    confirmBtnText="Удалить"
-                    cancelBtnText="Отмена"
-                    disableButtons={isLoading}
-                    onConfirm={() => {
-                        onDeleteCategory?.(isDeleteCategoryModalOpen.data.id);
-                        changeCategory(isDeleteCategoryModalOpen.data.parentId);
-                        setDeleteCategoryModalOpen(null);
-                    }}
-                    onCancel={() => setDeleteCategoryModalOpen(null)}
-                />
+                isDeleteCategoryModalOpen.action === 'confirmRecordsDelete' ? (
+                    <SimpleModal
+                        type="prompt"
+                        title={`Удалить все записи вместе с категорией "${isDeleteCategoryModalOpen.data.name}"?`}
+                        message={`Все записи будут безвозвратно удалены из текущей и вложенных категорий! Для подтверждения введите "Удалить категорию и записи полностью!"`}
+                        confirmBtnText="Удалить"
+                        cancelBtnText="Отмена"
+                        disableButtons={isLoading}
+                        onConfirm={async (val) => {
+                            if (val === 'Удалить категорию и записи полностью!') {
+                                await onDeleteCategory?.(isDeleteCategoryModalOpen.data.id, true);
+                                changeCategory(isDeleteCategoryModalOpen.data.parentId);
+                                setDeleteCategoryModalOpen(null);
+                            }
+                        }}
+                        onCancel={() => setDeleteCategoryModalOpen(null)}
+                    />
+                ) : (
+                    <SimpleModal
+                        type="confirm"
+                        title={`Удалить категорию "${isDeleteCategoryModalOpen.data.name}"?`}
+                        message="Содержимое категории будет перенесено на уровень выше"
+                        confirmBtnText="Удалить"
+                        cancelBtnText="Отмена"
+                        disableButtons={isLoading}
+                        onConfirm={() => {
+                            onDeleteCategory?.(isDeleteCategoryModalOpen.data.id);
+                            changeCategory(isDeleteCategoryModalOpen.data.parentId);
+                            setDeleteCategoryModalOpen(null);
+                        }}
+                        onCancel={() => setDeleteCategoryModalOpen(null)}
+
+                        buttons={[
+                            {
+                                textLabel: "Удалить с содержимым",
+                                onClick: () => setDeleteCategoryModalOpen(({ ...isDeleteCategoryModalOpen, action: "confirmRecordsDelete", deleteWithRecords: true }))
+                            }
+                        ]}
+                    />
+                )
             )}
         </div>
     )
@@ -320,18 +476,42 @@ function RecordRow({
     showEncrypted,
     filterText,
     record,
+    activateContextMenuRef,
+    categoryToMove,
+    recordToMove,
+    isSelected,
     onSelect,
-    onDelete
+    onDelete,
+    setContextMenuData,
 }: {
     showEncrypted?: boolean;
     filterText?: string;
     record: _Record;
+    categoryToMove?: Category | null;
+    recordToMove?: _Record | null;
+    activateContextMenuRef: RefObject<((e: MouseEvent | _MouseEvent) => void) | null>;
+
+    isSelected?: boolean;
+
     onSelect?: (data: _Record) => void;
     onDelete: (data: _Record) => void;
+
+    setContextMenuData?: (data: ContextMenuData | null) => any;
 }) {
     return (
-        <div className="records-list-item type-file">
-            <div className="records-list-item__left" onClick={() => onSelect?.(record)}>
+        <div className={`records-list-item type-file ${(record.id === recordToMove?.id) ? 'to-move' : ''} ${isSelected ? 'selected' : ''}`} onContextMenu={(e) => {
+            if (!categoryToMove) {
+                setContextMenuData?.({
+                    type: 'record',
+                    data: record
+                });
+                activateContextMenuRef.current?.(e);
+            }
+            e.preventDefault();
+        }}>
+            <div className="records-list-item__left" onClick={() => {
+                if (!recordToMove) onSelect?.(record);
+            }}>
                 <span className="records-list-item__name">
                     <TextSelection
                         text={record.title}
@@ -339,46 +519,41 @@ function RecordRow({
                     />
                 </span>
             </div>
-            <div className="records-list-item__right --desktop-only">
-                <div className="records-list-item__infobox lf">
-                    <span className="records-list-item__label">Создана:</span>
-                    <div className="records-list-item__value">{formatDate(record.createdAt)}</div>
-                </div>
-                <div className="records-list-item__infobox lf">
-                    <span className="records-list-item__label">Отредактирована:</span>
-                    <div className="records-list-item__value">{formatDate(record.updatedAt)}</div>
-                </div>
-                {(showEncrypted) && <div className="records-list-item__infobox">
-                    <span className="records-list-item__label">Зашифрована:</span>
-                    <div className="records-list-item__value">{record.isEncrypted ? "✔" : "⨉"}</div>
-                </div>}
-                <button
-                    className="records-list-item__button"
-                    onClick={() => onDelete(record)}
-                >
-                    Удалить
-                </button>
-            </div>
-            <div className="records-list-item__right --mobile-only">
-                {/* <div className="records-list-item__infobox lf">
-                    <span className="records-list-item__label">Создана:</span>
-                    <div className="records-list-item__value">{formatDate(record.createdAt)}</div>
-                </div>
-                <div className="records-list-item__infobox lf">
-                    <span className="records-list-item__label">Отредактирована:</span>
-                    <div className="records-list-item__value">{formatDate(record.updatedAt)}</div>
-                </div>
-                {(showEncrypted) && <div className="records-list-item__infobox">
-                    <span className="records-list-item__label">Зашифрована:</span>
-                    <div className="records-list-item__value">{record.isEncrypted ? "✔" : "⨉"}</div>
-                </div>} */}
-                <button
-                    className="records-list-item__button"
-                    onClick={() => onDelete(record)}
-                >
-                    ⨉
-                </button>
-            </div>
+            {(recordToMove) ? (
+                <div className="records-list-item__right">                </div>
+            ) : (
+                <>
+                    <div className="records-list-item__right --desktop-only">
+                        <div className="records-list-item__infobox lf">
+                            <span className="records-list-item__label">Создана:</span>
+                            <div className="records-list-item__value">{formatDate(record.createdAt)}</div>
+                        </div>
+                        <div className="records-list-item__infobox lf">
+                            <span className="records-list-item__label">Отредактирована:</span>
+                            <div className="records-list-item__value">{formatDate(record.updatedAt)}</div>
+                        </div>
+                        {(showEncrypted) && <div className="records-list-item__infobox">
+                            <span className="records-list-item__label">Зашифрована:</span>
+                            <div className="records-list-item__value">{record.isEncrypted ? "✔" : "⨉"}</div>
+                        </div>}
+                        <button
+                            className="records-list-item__button"
+                            onClick={() => onDelete(record)}
+                        >
+                            Удалить
+                        </button>
+                    </div>
+                    <div className="records-list-item__right --mobile-only">
+
+                        <button
+                            className="records-list-item__button"
+                            onClick={() => onDelete(record)}
+                        >
+                            ⨉
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

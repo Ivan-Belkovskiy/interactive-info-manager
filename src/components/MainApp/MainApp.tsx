@@ -7,10 +7,11 @@ import { useEffect, useState } from "react";
 import RecordManagementForm from "../RecordManagementForm/RecordManagementForm";
 import SimpleModal from "../UI/SimpleModal/SimpleModal";
 import { ClientCrypto } from "@/modules/ClientCrypto";
-import { deleteRecord, createCategory, deleteCategory, replaceRecordsAndKeyPassword } from "@/app/actions";
+import { deleteRecord, createCategory, deleteCategory, replaceRecordsAndKeyPassword, moveCategory, moveRecord } from "@/app/actions";
 import UserDataEditor from "../UserDataEditor/UserDataEditor";
 import AppNavigation from "../AppNavigation/AppNavigation";
 import DataUploader from "../DataUploader/DataUploader";
+import AnimatedLoader from "../UI/AnimatedLoader/AnimatedLoader";
 
 // export type MainAppProps = ({
 //     action: "user_settings";
@@ -50,6 +51,9 @@ export default function MainApp(props: MainAppProps) {
     const [editingRecordData, setEditingRecordData] = useState<Partial<_Record> | null>(null);
 
     const [openedInfoModal, setOpenedInfoModal] = useState<string | null>(null);
+
+    const [categoryToMove, setCategoryToMove] = useState<Category | null>(null);
+    const [recordToMove, setRecordToMove] = useState<_Record | null>(null);
 
     useEffect(() => {
 
@@ -123,8 +127,8 @@ export default function MainApp(props: MainAppProps) {
         await deleteRecord(data.id);
     }
 
-    const handleCategoryDelete = async (id: number) => {
-        await deleteCategory(id);
+    const handleCategoryDelete = async (id: number, withCategories?: boolean) => {
+        await deleteCategory(id, withCategories);
     }
 
     const handleCategoryCreate = async (categoryName: string) => {
@@ -305,6 +309,30 @@ export default function MainApp(props: MainAppProps) {
         }
     }
 
+    const handleEntryMove = async () => {
+        if (!categoryToMove && !recordToMove) return;
+
+        setLoading(true);
+
+        if (categoryToMove) {
+            const res = await moveCategory(categoryToMove.id, activeCategoryId);
+
+            if (res.success && res.data) {
+                setCategoryToMove(null);
+                setRecordToMove(null);
+            }
+        } else if (recordToMove) {
+            const res = await moveRecord(recordToMove.id, activeCategoryId);
+
+            if (res.success && res.data) {
+                setCategoryToMove(null);
+                setRecordToMove(null);
+            }
+        }
+
+        setLoading(false);
+    }
+
     const renderElements = (action: MainAppAction) => {
         if (props.action === 'user_settings') return (
             <UserDataEditor
@@ -328,33 +356,60 @@ export default function MainApp(props: MainAppProps) {
                         validateInputText={validateKeyPassword}
                         activeCategoryId={activeCategoryId}
                         onCategoryChange={(id) => setActiveCategoryId(id)}
+
+                        categoryToMove={categoryToMove}
+                        recordToMove={recordToMove}
+                        setCategoryToMove={setCategoryToMove}
+                        setRecordToMove={setRecordToMove}
                     />
                     <div className="main-app__buttons">
-                        <button
-                            className="main-app__button"
-                            onClick={() => setCurrentAction('record-creation')}
-                        >
-                            Создать запись
-                        </button>
-                        <button
-                            className="main-app__button main-app__button--secondary"
-                            onClick={() => setCategoryModalOpened(true)}
-                        // onClick={() => setCurrentAction('category-creation')}
-                        >
-                            Создать категорию
-                        </button>
-                        <button
-                            className="main-app__button"
-                            onClick={() => setCurrentAction('data-upload')}
-                        >
-                            Загрузить с устройства...
-                        </button>
-                        {/* <button
-                        className="main-app__button main-app__button--secondary"
-                        onClick={() => setCurrentAction('category-creation')}
-                    >
-                        Загрузить с устройства
-                    </button> */}
+                        {(categoryToMove || recordToMove) ? (
+                            <>
+                                <button
+                                    className="main-app__button"
+                                    onClick={handleEntryMove}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading && (
+                                        <AnimatedLoader />
+                                    )}
+                                    <span>{isLoading ? "Перемещение..." : "Переместить в текущую категорию"}</span>
+                                </button>
+                                <button
+                                    className="main-app__button main-app__button--secondary"
+                                    onClick={() => {
+                                        if (categoryToMove) setCategoryToMove(null);
+                                        if (recordToMove) setRecordToMove(null);
+                                    }}
+                                    disabled={isLoading}
+                                // onClick={() => setCurrentAction('category-creation')}
+                                >
+                                    Отменить перемещение
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    className="main-app__button"
+                                    onClick={() => setCurrentAction('record-creation')}
+                                >
+                                    Создать запись
+                                </button>
+                                <button
+                                    className="main-app__button main-app__button--secondary"
+                                    onClick={() => setCategoryModalOpened(true)}
+                                // onClick={() => setCurrentAction('category-creation')}
+                                >
+                                    Создать категорию
+                                </button>
+                                <button
+                                    className="main-app__button"
+                                    onClick={() => setCurrentAction('data-upload')}
+                                >
+                                    Загрузить с устройства...
+                                </button>
+                            </>
+                        )}
                     </div>
                 </>
             );
