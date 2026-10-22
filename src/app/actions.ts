@@ -103,7 +103,7 @@ export async function createRecord({
         return { success: true, data: newRecord };
     } catch (error) {
         console.error(error);
-        return { success: false, error: "Не удалось сохранить" };
+        return { success: false, error: "Ошибка сохранения записи" };
     }
 }
 
@@ -135,6 +135,7 @@ export async function updateRecord({
         const newRecord = await prisma.records.update({
             where: {
                 id: recordId,
+                userId: user.id,
             },
             data: {
                 userId: user.id,
@@ -150,7 +151,7 @@ export async function updateRecord({
         return { success: true, data: newRecord };
     } catch (error) {
         console.error(error);
-        return { success: false, error: "Не удалось сохранить" };
+        return { success: false, error: "Ошибка обновления данных" };
     }
 }
 
@@ -161,6 +162,7 @@ export interface RecordDataToUpload {
     categoryId: number | null;
 }
 
+// This Server Action is not used in project code
 export async function uploadManyRecords(records: RecordDataToUpload[]) {
     const cookieStore = await cookies();
     const userLogin = cookieStore.get("user_session")?.value;
@@ -187,6 +189,8 @@ export async function uploadManyRecords(records: RecordDataToUpload[]) {
     }
 }
 
+
+
 export async function deleteRecord(id: number) {
     const cookieStore = await cookies();
     const userLogin = cookieStore.get("user_session")?.value;
@@ -200,6 +204,7 @@ export async function deleteRecord(id: number) {
         const newRecord = await prisma.records.delete({
             where: {
                 id,
+                userId: user.id,
             },
         });
 
@@ -208,7 +213,7 @@ export async function deleteRecord(id: number) {
         return { success: true, data: newRecord };
     } catch (error) {
         console.error(error);
-        return { success: false, error: "Не удалось сохранить" };
+        return { success: false, error: "Ошибка удаления записи" };
     }
 }
 
@@ -403,7 +408,7 @@ export async function moveCategory(currentId: number, targetId: number | null) {
         if (!user) return { success: false, error: "Пользователь не найден" };
 
         if (currentId === targetId) {
-            return { success: false, error: "Нельзя переместить категорию в саму себя" };
+            return { success: false, error: "ID текущей и целевой категории совпадают" };
         }
 
         const result = await prisma.$transaction(
@@ -693,6 +698,6 @@ export async function uploadRecordsWithFolders(
         return { success: true, imported: result.imported };
     } catch (error) {
         console.error("uploadRecordsWithFolders error:", error);
-        return { success: false, error: "Не удалось сохранить данные" };
+        return { success: false, error: "Ошибка массовой загрузки" };
     }
 }

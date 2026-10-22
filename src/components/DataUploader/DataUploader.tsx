@@ -4,7 +4,7 @@ import SimpleCheckbox from "../UI/SimpleCheckbox/SimpleCheckbox";
 import AnimatedLoader from "../UI/AnimatedLoader/AnimatedLoader";
 import SimpleModal, { SimpleModalType } from "../UI/SimpleModal/SimpleModal";
 import { ClientCrypto } from "@/modules/ClientCrypto";
-import { RecordDataToUpload, uploadManyRecords, FolderUploadItem, uploadRecordsWithFolders } from "@/app/actions";
+import { RecordDataToUpload, FolderUploadItem, uploadRecordsWithFolders } from "@/app/actions";
 import { Category } from "@/types/data";
 
 export interface DataUploaderProps {

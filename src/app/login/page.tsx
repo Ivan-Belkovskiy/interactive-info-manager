@@ -25,7 +25,7 @@ export default function LoginPage() {
             }
             setLoading(false);
         } catch (error) {
-            setSubmitError('Неизвестная ошибка!');
+            // setSubmitError('Неизвестная ошибка!');
         }
     };
 
